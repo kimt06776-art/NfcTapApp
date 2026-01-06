@@ -1,19 +1,21 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
-local.properties
+# IDE
+.idea/
+.vscode/
 
-# Environment variables
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경 변수
 .env
-.env.local
+
+# Git
+.git/
+
+# 임시 파일
+*.log
+*.tmp
+*.temp
+
+# 서브폴더는 각자 gitignore 관리
+# frontend/ 와 backend/ 는 각자의 .gitignore 사용
