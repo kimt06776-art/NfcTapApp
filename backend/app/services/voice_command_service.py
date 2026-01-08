@@ -79,10 +79,6 @@ class VoiceCommandService:
                                     "minimum": 0.0,
                                     "maximum": 1.0
                                 },
-                                "parameters": {
-                                    "type": "object",
-                                    "additionalProperties": True
-                                },
                                 "message": {
                                     "type": "string"
                                 }
@@ -107,7 +103,7 @@ class VoiceCommandService:
             analysis = VoiceCommandAnalysis(
                 action=VoiceCommandAction(result["action"]),
                 confidence=result["confidence"],
-                parameters=result.get("parameters"),
+                parameters=None,
                 message=result["message"]
             )
 

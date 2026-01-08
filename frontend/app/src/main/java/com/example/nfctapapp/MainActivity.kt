@@ -819,35 +819,6 @@ fun HomeScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                // 제안 명령어
-                Text(
-                    text = "이렇게 말해보세요:",
-                    fontSize = 14.sp,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(
-                        "\"오늘 설교 들려줘\"",
-                        "\"오늘의 말씀이 뭐야?\"",
-                        "\"AI 상담 시작\"",
-                        "\"성경 읽기\""
-                    ).forEach { example ->
-                        Text(
-                            text = example,
-                            fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-                }
             }
 
             // AI 채팅 플로팅 버튼 (우측 하단)
