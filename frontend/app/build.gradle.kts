@@ -31,23 +31,6 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        // Supabase configuration from local.properties
-        buildConfigField(
-            "String",
-            "SUPABASE_URL",
-            "\"${localProperties.getProperty("SUPABASE_URL", "")}\""
-        )
-        buildConfigField(
-            "String",
-            "SUPABASE_ANON_KEY",
-            "\"${localProperties.getProperty("SUPABASE_ANON_KEY", "")}\""
-        )
-        buildConfigField(
-            "String",
-            "OPENAI_API_KEY",
-            "\"${localProperties.getProperty("OPENAI_API_KEY", "")}\""
-        )
     }
 
     buildTypes {
@@ -88,12 +71,16 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation("androidx.compose.material:material-icons-extended")
 
-    // Supabase
-    implementation(platform(libs.supabase.bom))
-    implementation(libs.supabase.postgrest)
+    // Retrofit (Backend API)
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-moshi:2.9.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // Ktor (Supabase 네트워크 엔진)
-    implementation(libs.ktor.client.android)
+    // Moshi (JSON)
+    implementation("com.squareup.moshi:moshi:1.15.0")
+    implementation("com.squareup.moshi:moshi-kotlin:1.15.0")
+    ksp("com.squareup.moshi:moshi-kotlin-codegen:1.15.0")
 
     // DataStore (오프라인 캐시)
     implementation(libs.datastore.preferences)
@@ -108,10 +95,6 @@ dependencies {
 
     // Serialization
     implementation(libs.kotlinx.serialization.json)
-
-    // OpenAI API
-    implementation("com.aallam.openai:openai-client:3.6.2")
-    implementation("io.ktor:ktor-client-okhttp:2.3.7")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

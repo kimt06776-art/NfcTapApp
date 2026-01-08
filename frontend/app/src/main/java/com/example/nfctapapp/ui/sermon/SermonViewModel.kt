@@ -19,20 +19,27 @@ data class SermonUiState(
 )
 
 @HiltViewModel
-class SermonViewModel @Inject constructor() : ViewModel() {
+class SermonViewModel @Inject constructor(
+    private val sermonRepository: SermonRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SermonUiState())
     val uiState: StateFlow<SermonUiState> = _uiState.asStateFlow()
 
-    init {
-        loadSermons()
+    private var hasLoaded = false
+
+    fun loadSermonsIfNeeded() {
+        if (!hasLoaded) {
+            hasLoaded = true
+            loadSermons()
+        }
     }
 
     fun loadSermons() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
-            val result = SermonRepository.getAllSermons()
+            val result = sermonRepository.getAllSermons()
 
             result.fold(
                 onSuccess = { sermons ->

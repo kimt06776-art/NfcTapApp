@@ -2,7 +2,7 @@ package com.example.nfctapapp.di
 
 import android.content.Context
 import com.example.nfctapapp.data.local.UserPreferences
-import com.example.nfctapapp.data.remote.SupabaseClient
+import com.example.nfctapapp.data.remote.api.ApiService
 import com.example.nfctapapp.data.repository.AuthRepository
 import com.example.nfctapapp.data.repository.AuthRepositoryImpl
 import com.example.nfctapapp.data.repository.AssetBibleRepository
@@ -15,15 +15,14 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
+/**
+ * Hilt Dependency Injection Module
+ *
+ * ApiClient.kt에서 이미 ApiService를 제공하므로 여기서는 추가 설정 불필요
+ */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-
-    @Provides
-    @Singleton
-    fun provideSupabaseClient(): SupabaseClient {
-        return SupabaseClient
-    }
 
     @Provides
     @Singleton
@@ -44,11 +43,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAuthRepository(
-        supabaseClient: SupabaseClient,
+        apiService: ApiService,
         userPreferences: UserPreferences,
         deviceUtils: DeviceUtils
     ): AuthRepository {
-        return AuthRepositoryImpl(supabaseClient, userPreferences, deviceUtils)
+        return AuthRepositoryImpl(apiService, userPreferences, deviceUtils)
     }
 
     /**

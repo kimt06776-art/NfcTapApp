@@ -1,11 +1,13 @@
 package com.example.nfctapapp.data
 
-import com.example.nfctapapp.data.remote.SupabaseClient
-import com.example.nfctapapp.data.remote.dto.SermonDto
-import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.Order
+import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.SermonDto
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import javax.inject.Inject
+import javax.inject.Singleton
 
 data class Sermon(
     val id: String,
@@ -18,7 +20,45 @@ data class Sermon(
     val thumbnailUrl: String? = null
 )
 
-object SermonRepository {
+/**
+ * 샘플 설교 데이터 (하드코딩)
+ * HomeScreen에서 빠른 프로토타이핑용
+ */
+object SampleSermonData {
+    fun getSampleSermons(): List<Sermon> {
+        return listOf(
+            Sermon(
+                id = "1",
+                title = "하나님의 사랑과 은혜",
+                preacher = "김목사",
+                date = "2024.01.14",
+                description = "요한복음 3장 16절을 통해 하나님의 무한하신 사랑을 묵상합니다.",
+                youtubeVideoId = "dQw4w9WgXcQ",
+                scripture = "요한복음 3:16"
+            ),
+            Sermon(
+                id = "2",
+                title = "믿음으로 사는 삶",
+                preacher = "이목사",
+                date = "2024.01.07",
+                description = "히브리서 11장을 통해 믿음의 본질을 배웁니다.",
+                youtubeVideoId = "dQw4w9WgXcQ",
+                scripture = "히브리서 11:1-6"
+            )
+        )
+    }
+}
+
+/**
+ * Sermon Repository (Backend API 사용)
+ *
+ * 이전: SupabaseClient 직접 사용
+ * 현재: Backend REST API 사용 (보안 강화)
+ */
+@Singleton
+class SermonRepository @Inject constructor(
+    private val apiService: ApiService
+) {
 
     private fun SermonDto.toSermon(): Sermon {
         // ISO 날짜를 "2024.12.29" 형식으로 변환
@@ -42,50 +82,68 @@ object SermonRepository {
     }
 
     suspend fun getAllSermons(): Result<List<Sermon>> {
-        return try {
-            val response = SupabaseClient.client.postgrest
-                .from("sermons")
-                .select {
-                    filter { eq("is_active", true) }
-                    order("published_at", Order.DESCENDING)
-                }
-                .decodeList<SermonDto>()
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getAllSermons()
 
-            Result.success(response.map { it.toSermon() })
-        } catch (e: Exception) {
-            Result.failure(e)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true) {
+                        val sermons = body.sermons?.map { it.toSermon() } ?: emptyList()
+                        Result.success(sermons)
+                    } else {
+                        Result.failure(Exception(body?.error ?: "설교 조회 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
     suspend fun getLatestSermon(): Result<Sermon?> {
-        return try {
-            val response = SupabaseClient.client.postgrest
-                .from("sermons")
-                .select {
-                    filter { eq("is_active", true) }
-                    order("published_at", Order.DESCENDING)
-                    limit(1)
-                }
-                .decodeList<SermonDto>()
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getLatestSermon()
 
-            Result.success(response.firstOrNull()?.toSermon())
-        } catch (e: Exception) {
-            Result.failure(e)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true) {
+                        val sermon = body.sermon?.toSermon()
+                        Result.success(sermon)
+                    } else {
+                        Result.failure(Exception(body?.error ?: "최신 설교 조회 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
     suspend fun getSermonById(id: String): Result<Sermon?> {
-        return try {
-            val response = SupabaseClient.client.postgrest
-                .from("sermons")
-                .select {
-                    filter { eq("id", id) }
-                }
-                .decodeList<SermonDto>()
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getSermonById(id)
 
-            Result.success(response.firstOrNull()?.toSermon())
-        } catch (e: Exception) {
-            Result.failure(e)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true) {
+                        val sermon = body.sermon?.toSermon()
+                        Result.success(sermon)
+                    } else {
+                        Result.failure(Exception(body?.error ?: "설교 조회 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 }

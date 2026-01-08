@@ -64,14 +64,6 @@ fun ChatScreen(
         viewModel.initialize(userId)
     }
 
-    val menuItems = listOf(
-        DrawerMenuItem("sermon", "설교", Icons.Rounded.Campaign, Color(0xFFE87B7B)),
-        DrawerMenuItem("notice", "교회 공지", Icons.Rounded.Notifications, Color(0xFFF5A962)),
-        DrawerMenuItem("bible", "성경 읽기", Icons.Rounded.Book, Color(0xFF6B8ED6)),
-        DrawerMenuItem("community", "커뮤니티", Icons.Rounded.Groups, Color(0xFF7BC47F)),
-        DrawerMenuItem("settings", "설정", Icons.Rounded.Settings, Color(0xFF9E9E9E))
-    )
-
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -79,47 +71,6 @@ fun ChatScreen(
                 drawerContainerColor = Color(0xFF1E3A5F)
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
-
-                // 메뉴 섹션
-                Text(
-                    text = "메뉴",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp)
-                )
-
-                menuItems.forEach { item ->
-                    NavigationDrawerItem(
-                        icon = {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = null,
-                                tint = item.color
-                            )
-                        },
-                        label = {
-                            Text(
-                                text = item.title,
-                                color = Color.White,
-                                fontSize = 16.sp
-                            )
-                        },
-                        selected = false,
-                        onClick = {
-                            scope.launch { drawerState.close() }
-                            onMenuClick(item.id)
-                        },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                        colors = NavigationDrawerItemDefaults.colors(
-                            unselectedContainerColor = Color.Transparent
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = Color.White.copy(alpha = 0.2f))
-                Spacer(modifier = Modifier.height(16.dp))
 
                 // 대화 섹션
                 Row(

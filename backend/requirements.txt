@@ -1,9 +1,22 @@
-fastapi==0.109.0
-langchain==0.1.0
-langchain-openai==0.0.5
-pydantic==2.5.3
-uvicorn==0.27.0
+# Web Framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+
+# LangChain (Core only, no heavy dependencies)
+langchain-core==0.3.0
+langchain-openai==0.2.0
+
+# Data Validation
+pydantic==2.9.0
+pydantic-settings==2.5.0
+
+# Environment
 python-dotenv==1.0.0
-supabase==2.3.0
-pytest==7.4.4
-pytest-asyncio==0.23.3
+
+# Database
+supabase==2.9.1
+
+# Testing
+pytest==8.3.0
+pytest-asyncio==0.24.0
+httpx==0.27.0  # For testing FastAPI

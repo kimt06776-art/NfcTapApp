@@ -17,5 +17,9 @@ Thumbs.db
 *.tmp
 *.temp
 
+# Gradle (Android)
+.gradle/
+build/
+
 # 서브폴더는 각자 gitignore 관리
 # frontend/ 와 backend/ 는 각자의 .gitignore 사용

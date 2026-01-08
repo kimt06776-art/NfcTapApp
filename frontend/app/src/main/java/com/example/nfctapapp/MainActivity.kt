@@ -23,17 +23,25 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.outlined.EmojiEvents
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.MenuBook
+import androidx.compose.material.icons.outlined.MusicNote
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.rounded.Book
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.PlayCircle
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
@@ -53,6 +61,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.nfctapapp.data.MeditationRepository
+import com.example.nfctapapp.data.NoticeRepository
+import com.example.nfctapapp.data.SampleSermonData
 import com.example.nfctapapp.data.Sermon
 import com.example.nfctapapp.data.VerseRepository
 import com.example.nfctapapp.ui.sermon.SermonViewModel
@@ -323,7 +334,16 @@ fun AppNavigation(
 
         composable("home") {
             HomeScreen(
-                onStartClick = { navController.navigate("chat") }
+                onMenuClick = { menuId ->
+                    navController.navigate(menuId)
+                },
+                onChatClick = { navController.navigate("chat") }
+            )
+        }
+
+        composable("todayVerse") {
+            TodayVerseScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
 
@@ -337,7 +357,10 @@ fun AppNavigation(
                     when (menuId) {
                         "sermon" -> navController.navigate("sermon")
                         "bible" -> navController.navigate("bible")
-                        // TODO: 다른 메뉴 항목들 추가
+                        "notice" -> navController.navigate("notice")
+                        "community" -> navController.navigate("community")
+                        "worship" -> navController.navigate("worship")
+                        "gamification" -> navController.navigate("gamification")
                     }
                 },
                 onCloseClick = { navController.popBackStack() }
@@ -400,16 +423,395 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() }
             )
         }
+
+        composable("gamification") {
+            com.example.nfctapapp.ui.gamification.GamificationScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("notice") {
+            com.example.nfctapapp.ui.notice.NoticeScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("community") {
+            com.example.nfctapapp.ui.community.CommunityScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        composable("worship") {
+            com.example.nfctapapp.ui.worship.WorshipScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
     }
 }
 
 @Composable
-fun HomeScreen(onStartClick: () -> Unit) {
+fun HomeHeader(
+    onSearchClick: () -> Unit = {}
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 로고 이미지
+                Image(
+                    painter = painterResource(id = R.drawable.logo_nfc),
+                    contentDescription = "NFC 복음 로고",
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                // 앱 이름
+                Text(
+                    text = "NFC 복음",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E3A5F)
+                )
+            }
+            // 검색 버튼
+            IconButton(onClick = onSearchClick) {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = "검색",
+                    tint = Color(0xFF1E3A5F)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeScreen(
+    onMenuClick: (String) -> Unit,
+    onChatClick: () -> Unit
+) {
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+            .systemBarsPadding(),
+        bottomBar = {
+            NavigationBar(
+                containerColor = Color.White,
+                contentColor = Color(0xFF1E3A5F)
+            ) {
+                NavigationBarItem(
+                    icon = { Icon(imageVector = Icons.Rounded.Book, contentDescription = "성경") },
+                    label = { Text(text = "성경", fontSize = 11.sp) },
+                    selected = false,
+                    onClick = { onMenuClick("bible") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF1E3A5F),
+                        selectedTextColor = Color(0xFF1E3A5F),
+                        indicatorColor = Color(0xFFE3F2FD),
+                        unselectedIconColor = Color(0xFF888888),
+                        unselectedTextColor = Color(0xFF888888)
+                    )
+                )
+                NavigationBarItem(
+                    icon = { Icon(imageVector = Icons.Outlined.MusicNote, contentDescription = "찬양") },
+                    label = { Text(text = "찬양", fontSize = 11.sp) },
+                    selected = false,
+                    onClick = { onMenuClick("worship") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF1E3A5F),
+                        selectedTextColor = Color(0xFF1E3A5F),
+                        indicatorColor = Color(0xFFE3F2FD),
+                        unselectedIconColor = Color(0xFF888888),
+                        unselectedTextColor = Color(0xFF888888)
+                    )
+                )
+                NavigationBarItem(
+                    icon = { Icon(imageVector = Icons.Rounded.Groups, contentDescription = "커뮤니티") },
+                    label = { Text(text = "커뮤니티", fontSize = 11.sp) },
+                    selected = false,
+                    onClick = { onMenuClick("community") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF1E3A5F),
+                        selectedTextColor = Color(0xFF1E3A5F),
+                        indicatorColor = Color(0xFFE3F2FD),
+                        unselectedIconColor = Color(0xFF888888),
+                        unselectedTextColor = Color(0xFF888888)
+                    )
+                )
+                NavigationBarItem(
+                    icon = { Icon(imageVector = Icons.Outlined.EmojiEvents, contentDescription = "신앙활동") },
+                    label = { Text(text = "신앙활동", fontSize = 11.sp) },
+                    selected = false,
+                    onClick = { onMenuClick("gamification") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF1E3A5F),
+                        selectedTextColor = Color(0xFF1E3A5F),
+                        indicatorColor = Color(0xFFE3F2FD),
+                        unselectedIconColor = Color(0xFF888888),
+                        unselectedTextColor = Color(0xFF888888)
+                    )
+                )
+                NavigationBarItem(
+                    icon = { Icon(imageVector = Icons.Rounded.Campaign, contentDescription = "공동체") },
+                    label = { Text(text = "공동체", fontSize = 11.sp) },
+                    selected = false,
+                    onClick = { onMenuClick("notice") },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color(0xFF1E3A5F),
+                        selectedTextColor = Color(0xFF1E3A5F),
+                        indicatorColor = Color(0xFFE3F2FD),
+                        unselectedIconColor = Color(0xFF888888),
+                        unselectedTextColor = Color(0xFF888888)
+                    )
+                )
+            }
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(Color(0xFFF5F5F5))
+        ) {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                // 오늘의 섹션 제목
+                item {
+                    Text(
+                        text = "오늘의",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1E3A5F),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
+                    )
+                }
+
+                // 오늘의 4가지 (4열 그리드)
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // 말씀
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onMenuClick("todayVerse") },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.MenuBook,
+                                    contentDescription = "말씀",
+                                    modifier = Modifier.size(32.dp),
+                                    tint = Color(0xFF1E3A5F)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "말씀",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E3A5F)
+                                )
+                            }
+                        }
+
+                        // 설교
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onMenuClick("sermon") },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Mic,
+                                    contentDescription = "설교",
+                                    modifier = Modifier.size(32.dp),
+                                    tint = Color(0xFF1E3A5F)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "설교",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E3A5F)
+                                )
+                            }
+                        }
+
+                        // 묵상
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onMenuClick("meditation") },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Favorite,
+                                    contentDescription = "묵상",
+                                    modifier = Modifier.size(32.dp),
+                                    tint = Color(0xFF1E3A5F)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "묵상",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E3A5F)
+                                )
+                            }
+                        }
+
+                        // 추천
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = Color.White
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Star,
+                                    contentDescription = "추천",
+                                    modifier = Modifier.size(32.dp),
+                                    tint = Color(0xFF1E3A5F)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "추천",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1E3A5F)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 구분선
+                item {
+                    Divider(
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = Color(0xFFE0E0E0),
+                        thickness = 1.dp
+                    )
+                }
+
+                // 교회 소식
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onMenuClick("notice") },
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color.White
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Text(
+                            text = "교회 소식",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E3A5F),
+                            modifier = Modifier.padding(20.dp)
+                        )
+                    }
+                }
+
+            item { Spacer(modifier = Modifier.height(80.dp)) }
+            }
+
+            // AI 채팅 플로팅 버튼
+            FloatingActionButton(
+                onClick = onChatClick,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(24.dp),
+                containerColor = Color(0xFF1E3A5F),
+                contentColor = Color.White
+            ) {
+                Text(
+                    text = "💬",
+                    fontSize = 28.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun TodayVerseScreen(onBackClick: () -> Unit) {
     val todayVerse = remember { VerseRepository.getTodayVerse() }
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
+        // 배경 이미지
         Image(
             painter = painterResource(id = R.drawable.bg_home),
             contentDescription = null,
@@ -420,16 +822,25 @@ fun HomeScreen(onStartClick: () -> Unit) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 32.dp)
-                .systemBarsPadding(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .systemBarsPadding()
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            // 뒤로가기 버튼
+            IconButton(
+                onClick = onBackClick,
+                modifier = Modifier.padding(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,
+                    contentDescription = "뒤로가기",
+                    tint = Color.White
+                )
+            }
 
+            // 오늘의 말씀 제목 (상단)
             Text(
                 text = "오늘의 말씀",
                 style = TextStyle(
-                    fontSize = 36.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     shadow = Shadow(
@@ -437,64 +848,141 @@ fun HomeScreen(onStartClick: () -> Unit) {
                         offset = Offset(2f, 2f),
                         blurRadius = 4f
                     )
-                )
-            )
-
-            Spacer(modifier = Modifier.weight(1.5f))
-
-            Text(
-                text = todayVerse.text,
-                style = TextStyle(
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White,
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.5f),
-                        offset = Offset(1f, 1f),
-                        blurRadius = 3f
-                    ),
-                    textAlign = TextAlign.Center,
-                    lineHeight = 36.sp
                 ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp, vertical = 24.dp),
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                text = todayVerse.reference,
-                style = TextStyle(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = Color.White.copy(alpha = 0.9f),
-                    shadow = Shadow(
-                        color = Color.Black.copy(alpha = 0.5f),
-                        offset = Offset(1f, 1f),
-                        blurRadius = 2f
-                    )
-                )
-            )
-
-            Spacer(modifier = Modifier.weight(0.8f))
-
-            Button(
-                onClick = onStartClick,
+            // 말씀 컨텐츠 (중앙 정렬)
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White.copy(alpha = 0.9f),
-                    contentColor = Color(0xFF1E3A5F)
-                )
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "시작하기",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
+                    text = todayVerse.text,
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White,
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(1f, 1f),
+                            blurRadius = 3f
+                        ),
+                        textAlign = TextAlign.Center,
+                        lineHeight = 34.sp
+                    ),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = todayVerse.reference,
+                    style = TextStyle(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.White.copy(alpha = 0.95f),
+                        shadow = Shadow(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            offset = Offset(1f, 1f),
+                            blurRadius = 2f
+                        )
+                    )
                 )
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(40.dp))
+@Composable
+fun HomeContentCard(
+    title: String,
+    onMoreClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1E3A5F)
+                )
+                TextButton(onClick = onMoreClick) {
+                    Text(
+                        text = "더보기 →",
+                        fontSize = 12.sp,
+                        color = Color(0xFF6B8ED6),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+fun HomeMenuCard(
+    modifier: Modifier = Modifier,
+    icon: String,
+    title: String,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = icon,
+                fontSize = 48.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = title,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1E3A5F),
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
         }
     }
 }
@@ -635,6 +1123,11 @@ fun SermonScreen(
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
+
+    // 화면 진입 시 데이터 로드
+    LaunchedEffect(Unit) {
+        viewModel.loadSermonsIfNeeded()
+    }
 
     Box(
         modifier = Modifier

@@ -1,173 +1,249 @@
 package com.example.nfctapapp.data.repository
 
-import com.aallam.openai.api.chat.ChatMessage as OpenAIChatMessage
-import com.aallam.openai.api.chat.ChatRole
-import com.example.nfctapapp.data.remote.OpenAIClient
-import com.example.nfctapapp.data.remote.SupabaseClient
-import com.example.nfctapapp.data.remote.dto.ChatMessageDto
-import com.example.nfctapapp.data.remote.dto.ChatMessageInsert
-import com.example.nfctapapp.data.remote.dto.ChatSessionDto
-import com.example.nfctapapp.data.remote.dto.ChatSessionInsert
-import io.github.jan.supabase.postgrest.postgrest
-import io.github.jan.supabase.postgrest.query.Order
+import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.ChatMessageDto
+import com.example.nfctapapp.data.remote.api.ChatMessageInsert
+import com.example.nfctapapp.data.remote.api.ChatSessionDto
+import com.example.nfctapapp.data.remote.api.ChatStreamRequest
+import com.example.nfctapapp.data.remote.api.SessionCreateRequest
+import com.example.nfctapapp.data.remote.api.SessionUpdateRequest
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withContext
+import okhttp3.ResponseBody
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class ChatRepository(private val userId: String) {
+/**
+ * Chat Repository (Backend API 사용)
+ *
+ * 이전: OpenAIClient + SupabaseClient 직접 사용
+ * 현재: Backend REST API 사용 (보안 강화)
+ */
+@Singleton
+class ChatRepository @Inject constructor(
+    private val apiService: ApiService,
+    private val userId: String
+) {
 
-    private val supabase = SupabaseClient.client
-    private val conversationHistory = mutableListOf<OpenAIChatMessage>()
+    // ==================== 세션 관련 ====================
 
-    // 세션 관련
     suspend fun createSession(title: String? = null): Result<ChatSessionDto> {
-        return try {
-            val session = supabase.postgrest["chat_sessions"]
-                .insert(ChatSessionInsert(userId = userId, title = title)) {
-                    select()
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.createSession(
+                    SessionCreateRequest(userId = userId, title = title)
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true && body.session != null) {
+                        Result.success(body.session)
+                    } else {
+                        Result.failure(Exception(body?.error ?: "세션 생성 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
                 }
-                .decodeSingle<ChatSessionDto>()
-            Result.success(session)
-        } catch (e: Exception) {
-            Result.failure(e)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
     suspend fun getSessions(): Result<List<ChatSessionDto>> {
-        return try {
-            val sessions = supabase.postgrest["chat_sessions"]
-                .select {
-                    filter {
-                        eq("user_id", userId)
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getSessions(userId)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true) {
+                        Result.success(body.sessions ?: emptyList())
+                    } else {
+                        Result.failure(Exception(body?.error ?: "세션 조회 실패"))
                     }
-                    order("updated_at", Order.DESCENDING)
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
                 }
-                .decodeList<ChatSessionDto>()
-            Result.success(sessions)
-        } catch (e: Exception) {
-            Result.failure(e)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
     suspend fun updateSessionTitle(sessionId: String, title: String): Result<Unit> {
-        return try {
-            supabase.postgrest["chat_sessions"]
-                .update({ set("title", title) }) {
-                    filter {
-                        eq("id", sessionId)
-                    }
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.updateSessionTitle(
+                    sessionId,
+                    SessionUpdateRequest(title = title)
+                )
+
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
                 }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
     suspend fun deleteSession(sessionId: String): Result<Unit> {
-        return try {
-            supabase.postgrest["chat_sessions"]
-                .delete {
-                    filter {
-                        eq("id", sessionId)
-                    }
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.deleteSession(sessionId)
+
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
                 }
-            Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
-    // 메시지 관련
-    suspend fun getMessages(sessionId: String): Result<List<ChatMessageDto>> {
-        return try {
-            val messages = supabase.postgrest["chat_messages"]
-                .select {
-                    filter {
-                        eq("session_id", sessionId)
-                    }
-                    order("created_at", Order.ASCENDING)
-                }
-                .decodeList<ChatMessageDto>()
+    // ==================== 메시지 관련 ====================
 
-            // 대화 히스토리 복원
-            conversationHistory.clear()
-            messages.forEach { msg ->
-                conversationHistory.add(
-                    OpenAIChatMessage(
-                        role = if (msg.isFromUser) ChatRole.User else ChatRole.Assistant,
-                        content = msg.content
+    suspend fun getMessages(sessionId: String): Result<List<ChatMessageDto>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getMessages(sessionId)
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true) {
+                        Result.success(body.messages ?: emptyList())
+                    } else {
+                        Result.failure(Exception(body?.error ?: "메시지 조회 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun saveMessage(
+        sessionId: String,
+        content: String,
+        isFromUser: Boolean
+    ): Result<ChatMessageDto> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.saveMessage(
+                    ChatMessageInsert(
+                        sessionId = sessionId,
+                        content = content,
+                        isFromUser = isFromUser
                     )
                 )
-            }
 
-            Result.success(messages)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
-    }
-
-    suspend fun saveMessage(sessionId: String, content: String, isFromUser: Boolean): Result<ChatMessageDto> {
-        return try {
-            val message = supabase.postgrest["chat_messages"]
-                .insert(ChatMessageInsert(
-                    sessionId = sessionId,
-                    content = content,
-                    isFromUser = isFromUser
-                )) {
-                    select()
-                }
-                .decodeSingle<ChatMessageDto>()
-
-            // 세션 업데이트 시간 갱신
-            supabase.postgrest["chat_sessions"]
-                .update({ set("updated_at", "now()") }) {
-                    filter {
-                        eq("id", sessionId)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true && body.message != null) {
+                        Result.success(body.message)
+                    } else {
+                        Result.failure(Exception(body?.error ?: "메시지 저장 실패"))
                     }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
                 }
-
-            Result.success(message)
-        } catch (e: Exception) {
-            Result.failure(e)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
         }
     }
 
-    // AI 대화 (스트리밍)
+    // ==================== AI 대화 (스트리밍) ====================
+
+    /**
+     * 서버로부터 SSE (Server-Sent Events) 스트리밍 응답을 받아 처리
+     *
+     * 백엔드 POST /api/chat/stream 엔드포인트 호출
+     */
     fun sendMessageStream(sessionId: String, userMessage: String): Flow<StreamResponse> = flow {
-        // 사용자 메시지 저장
-        saveMessage(sessionId, userMessage, isFromUser = true)
-
-        val fullResponse = StringBuilder()
-
         try {
-            // 스트리밍 응답 받기
-            OpenAIClient.chatStream(userMessage, conversationHistory).collect { chunk ->
-                val content = chunk.choices.firstOrNull()?.delta?.content
-                if (content != null) {
-                    fullResponse.append(content)
-                    emit(StreamResponse.Streaming(fullResponse.toString()))
-                }
+            val response = apiService.chatStream(
+                ChatStreamRequest(
+                    sessionId = sessionId,
+                    userMessage = userMessage
+                )
+            )
+
+            if (!response.isSuccessful) {
+                emit(StreamResponse.Error("HTTP ${response.code()}: ${response.message()}"))
+                return@flow
             }
 
-            val response = fullResponse.toString()
+            val body = response.body()
+            if (body == null) {
+                emit(StreamResponse.Error("응답 본문이 비어있습니다"))
+                return@flow
+            }
 
-            // 대화 히스토리에 추가
-            conversationHistory.add(OpenAIChatMessage(role = ChatRole.User, content = userMessage))
-            conversationHistory.add(OpenAIChatMessage(role = ChatRole.Assistant, content = response))
+            // SSE 스트림 파싱
+            val fullResponse = StringBuilder()
+            parseSseStream(body) { chunk ->
+                fullResponse.append(chunk)
+                emit(StreamResponse.Streaming(fullResponse.toString()))
+            }
 
-            // AI 응답 저장
-            saveMessage(sessionId, response, isFromUser = false)
+            emit(StreamResponse.Complete(fullResponse.toString()))
 
-            emit(StreamResponse.Complete(response))
         } catch (e: Exception) {
             emit(StreamResponse.Error(e.message ?: "메시지 전송에 실패했습니다"))
         }
     }
 
-    fun clearHistory() {
-        conversationHistory.clear()
+    /**
+     * SSE (Server-Sent Events) 스트림 파싱
+     *
+     * 형식:
+     * data: {"content": "안녕"}
+     * data: {"content": "하세요"}
+     * data: [DONE]
+     */
+    private suspend fun parseSseStream(
+        body: ResponseBody,
+        onChunk: suspend (String) -> Unit
+    ) = withContext(Dispatchers.IO) {
+        body.source().use { source ->
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
+
+                // SSE 형식: "data: <content>"
+                if (line.startsWith("data: ")) {
+                    val data = line.substring(6).trim()
+
+                    // [DONE] 시그널 체크
+                    if (data == "[DONE]") {
+                        break
+                    }
+
+                    // JSON 파싱하지 않고 바로 내용 추출 (간단한 파싱)
+                    // 형식: {"content": "..."}
+                    val contentMatch = Regex(""""content"\s*:\s*"([^"]*)"""").find(data)
+                    if (contentMatch != null) {
+                        val content = contentMatch.groupValues[1]
+                        onChunk(content)
+                    }
+                }
+            }
+        }
     }
 }
 
+/**
+ * 스트리밍 응답 상태
+ */
 sealed class StreamResponse {
     data class Streaming(val content: String) : StreamResponse()
     data class Complete(val content: String) : StreamResponse()
