@@ -673,19 +673,30 @@ fun HomeScreen(
                 // 음성 인식 상태 표시
                 when (voiceUiState.recognitionState) {
                     com.example.nfctapapp.ui.voice.VoiceRecognitionState.LISTENING -> {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White.copy(alpha = 0.15f)
-                            )
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            // Liquid Animation
+                            com.example.nfctapapp.ui.voice.LiquidBlobAnimation(
+                                isAnimating = true,
+                                color = Color.White
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // Sound Wave Bars
+                            com.example.nfctapapp.ui.voice.SoundWaveBarsAnimation(
+                                isAnimating = true,
+                                color = Color.White.copy(alpha = 0.8f)
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
                             Text(
-                                text = "🎤 음성을 듣고 있습니다...",
+                                text = "음성을 듣고 있습니다...",
                                 fontSize = 16.sp,
-                                color = Color.White,
-                                modifier = Modifier.padding(20.dp),
+                                color = Color.White.copy(alpha = 0.9f),
                                 textAlign = TextAlign.Center
                             )
                         }
