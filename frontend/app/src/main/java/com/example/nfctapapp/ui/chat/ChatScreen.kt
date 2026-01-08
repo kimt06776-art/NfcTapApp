@@ -128,7 +128,10 @@ fun ChatScreen(
                     LazyColumn(
                         modifier = Modifier.weight(1f)
                     ) {
-                        items(uiState.sessions) { session ->
+                        items(
+                            items = uiState.sessions,
+                            key = { session -> session.id ?: "" }
+                        ) { session ->
                             SessionItem(
                                 title = session.title ?: "새 대화",
                                 isSelected = session.id == uiState.currentSessionId,
@@ -396,7 +399,10 @@ private fun ChatContent(
                 ) {
                     item { Spacer(modifier = Modifier.height(8.dp)) }
 
-                    items(uiState.messages) { message ->
+                    items(
+                        items = uiState.messages,
+                        key = { message -> message.id }
+                    ) { message ->
                         ChatBubble(message = message)
                     }
 

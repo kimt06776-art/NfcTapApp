@@ -10,6 +10,7 @@ import com.example.nfctapapp.data.remote.api.SessionUpdateRequest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import okhttp3.ResponseBody
 import javax.inject.Inject
@@ -201,20 +202,20 @@ class ChatRepository @Inject constructor(
         } catch (e: Exception) {
             emit(StreamResponse.Error(e.message ?: "메시지 전송에 실패했습니다"))
         }
-    }
+    }.flowOn(Dispatchers.IO)
 
     /**
      * SSE (Server-Sent Events) 스트림 파싱
      *
      * 형식:
-     * data: {"content": "안녕"}
-     * data: {"content": "하세요"}
+     * data: 안녕
+     * data: 하세요
      * data: [DONE]
      */
     private suspend fun parseSseStream(
         body: ResponseBody,
         onChunk: suspend (String) -> Unit
-    ) = withContext(Dispatchers.IO) {
+    ) {
         body.source().use { source ->
             while (!source.exhausted()) {
                 val line = source.readUtf8Line() ?: break
@@ -228,12 +229,9 @@ class ChatRepository @Inject constructor(
                         break
                     }
 
-                    // JSON 파싱하지 않고 바로 내용 추출 (간단한 파싱)
-                    // 형식: {"content": "..."}
-                    val contentMatch = Regex(""""content"\s*:\s*"([^"]*)"""").find(data)
-                    if (contentMatch != null) {
-                        val content = contentMatch.groupValues[1]
-                        onChunk(content)
+                    // 텍스트 그대로 처리 (JSON 파싱 불필요)
+                    if (data.isNotEmpty()) {
+                        onChunk(data)
                     }
                 }
             }

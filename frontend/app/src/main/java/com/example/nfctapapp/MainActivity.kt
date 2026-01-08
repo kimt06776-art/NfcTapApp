@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.outlined.EmojiEvents
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.MenuBook
@@ -507,6 +508,48 @@ fun HomeScreen(
     onMenuClick: (String) -> Unit,
     onChatClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val voiceViewModel: com.example.nfctapapp.ui.voice.VoiceCommandViewModel = hiltViewModel()
+    val voiceUiState by voiceViewModel.uiState.collectAsState()
+
+    // 권한 요청 런처
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startVoiceRecognition(context, voiceViewModel)
+        } else {
+            voiceViewModel.onRecognitionError("음성 인식 권한이 필요합니다")
+        }
+    }
+
+    // ViewModel 초기화 (userId는 null 가능)
+    LaunchedEffect(Unit) {
+        voiceViewModel.initialize(null)
+    }
+
+    // 음성 명령 분석 완료 시 네비게이션
+    LaunchedEffect(voiceUiState.analysis) {
+        val analysis = voiceUiState.analysis
+        if (analysis != null) {
+            when (analysis.action) {
+                com.example.nfctapapp.data.remote.api.VoiceCommandAction.NAVIGATE_HOME -> {
+                    // 이미 홈 화면
+                }
+                com.example.nfctapapp.data.remote.api.VoiceCommandAction.NAVIGATE_SERMON -> onMenuClick("sermon")
+                com.example.nfctapapp.data.remote.api.VoiceCommandAction.NAVIGATE_CHAT -> onChatClick()
+                com.example.nfctapapp.data.remote.api.VoiceCommandAction.START_CHAT -> onChatClick()
+                com.example.nfctapapp.data.remote.api.VoiceCommandAction.SHOW_DAILY_VERSE -> onMenuClick("todayVerse")
+                com.example.nfctapapp.data.remote.api.VoiceCommandAction.PLAY_LATEST_SERMON -> onMenuClick("sermon")
+                else -> {
+                    // UNKNOWN or unhandled
+                }
+            }
+            // 분석 결과 소비 (한 번만 실행)
+            voiceViewModel.consumeAnalysis()
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .fillMaxSize()
@@ -589,211 +632,232 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(Color(0xFFF5F5F5))
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF1E3A5F),
+                            Color(0xFF2D5478),
+                            Color(0xFF3D6E91)
+                        )
+                    )
+                )
         ) {
-            LazyColumn(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                // 메인 타이틀
+                Text(
+                    text = "무엇을 도와드릴까요?",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
 
-                // 오늘의 섹션 제목
-                item {
-                    Text(
-                        text = "오늘의",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF1E3A5F),
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
-                    )
-                }
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // 오늘의 4가지 (4열 그리드)
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        // 말씀
+                // 설명
+                Text(
+                    text = "음성으로 말하거나 아래 버튼을 터치하세요",
+                    fontSize = 16.sp,
+                    color = Color.White.copy(alpha = 0.9f),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(48.dp))
+
+                // 음성 인식 상태 표시
+                when (voiceUiState.recognitionState) {
+                    com.example.nfctapapp.ui.voice.VoiceRecognitionState.LISTENING -> {
                         Card(
                             modifier = Modifier
-                                .weight(1f)
-                                .clickable { onMenuClick("todayVerse") },
-                            shape = RoundedCornerShape(16.dp),
+                                .fillMaxWidth()
+                                .padding(16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                containerColor = Color.White.copy(alpha = 0.15f)
+                            )
                         ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.MenuBook,
-                                    contentDescription = "말씀",
-                                    modifier = Modifier.size(32.dp),
-                                    tint = Color(0xFF1E3A5F)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "말씀",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A5F)
-                                )
-                            }
+                            Text(
+                                text = "🎤 음성을 듣고 있습니다...",
+                                fontSize = 16.sp,
+                                color = Color.White,
+                                modifier = Modifier.padding(20.dp),
+                                textAlign = TextAlign.Center
+                            )
                         }
-
-                        // 설교
+                    }
+                    com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING -> {
                         Card(
                             modifier = Modifier
-                                .weight(1f)
-                                .clickable { onMenuClick("sermon") },
-                            shape = RoundedCornerShape(16.dp),
+                                .fillMaxWidth()
+                                .padding(16.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                containerColor = Color.White.copy(alpha = 0.15f)
+                            )
                         ) {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                modifier = Modifier.padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Mic,
-                                    contentDescription = "설교",
-                                    modifier = Modifier.size(32.dp),
-                                    tint = Color(0xFF1E3A5F)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                CircularProgressIndicator(color = Color.White)
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "설교",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A5F)
+                                    text = "🤖 명령을 분석하고 있습니다...",
+                                    fontSize = 16.sp,
+                                    color = Color.White,
+                                    textAlign = TextAlign.Center
                                 )
+                                if (voiceUiState.recognizedText != null) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "\"${voiceUiState.recognizedText}\"",
+                                        fontSize = 14.sp,
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         }
-
-                        // 묵상
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { onMenuClick("meditation") },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
+                    }
+                    com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS -> {
+                        val message = voiceUiState.analysis?.message
+                        if (message != null) {
+                            Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFF4CAF50).copy(alpha = 0.3f)
+                                )
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Favorite,
-                                    contentDescription = "묵상",
-                                    modifier = Modifier.size(32.dp),
-                                    tint = Color(0xFF1E3A5F)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "묵상",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A5F)
-                                )
-                            }
-                        }
-
-                        // 추천
-                        Card(
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Star,
-                                    contentDescription = "추천",
-                                    modifier = Modifier.size(32.dp),
-                                    tint = Color(0xFF1E3A5F)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "추천",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1E3A5F)
+                                    text = "✅ $message",
+                                    fontSize = 16.sp,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(20.dp),
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
                     }
+                    com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> {
+                        if (voiceUiState.error != null) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color(0xFFE87B7B).copy(alpha = 0.3f)
+                                )
+                            ) {
+                                Text(
+                                    text = "❌ ${voiceUiState.error}",
+                                    fontSize = 16.sp,
+                                    color = Color.White,
+                                    modifier = Modifier.padding(20.dp),
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+                    else -> {
+                        // 기본 상태: 아무것도 표시하지 않음
+                    }
                 }
 
-                // 구분선
-                item {
-                    Divider(
-                        modifier = Modifier.padding(vertical = 8.dp),
-                        color = Color(0xFFE0E0E0),
-                        thickness = 1.dp
-                    )
+                Spacer(modifier = Modifier.height(48.dp))
+
+                // 큰 음성 인식 버튼
+                FloatingActionButton(
+                    onClick = {
+                        when (voiceUiState.recognitionState) {
+                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.IDLE,
+                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> {
+                                permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                            }
+                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS -> {
+                                voiceViewModel.reset()
+                            }
+                            else -> {
+                                // 진행 중일 때는 아무것도 안함
+                            }
+                        }
+                    },
+                    modifier = Modifier.size(100.dp),
+                    containerColor = when (voiceUiState.recognitionState) {
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.LISTENING -> Color(0xFFE87B7B)
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING -> Color(0xFFF5A962)
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS -> Color(0xFF4CAF50)
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> Color(0xFFE87B7B).copy(alpha = 0.6f)
+                        else -> Color.White
+                    },
+                    contentColor = when (voiceUiState.recognitionState) {
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.LISTENING,
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING,
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS,
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> Color.White
+                        else -> Color(0xFF1E3A5F)
+                    }
+                ) {
+                    when (voiceUiState.recognitionState) {
+                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING -> {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(40.dp),
+                                color = Color.White
+                            )
+                        }
+                        else -> {
+                            Icon(
+                                imageVector = Icons.Filled.Mic,
+                                contentDescription = "음성 인식",
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                    }
                 }
 
-                // 교회 소식
-                item {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onMenuClick("notice") },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = Color.White
-                        ),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
+                Spacer(modifier = Modifier.height(48.dp))
+
+                // 제안 명령어
+                Text(
+                    text = "이렇게 말해보세요:",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        "\"오늘 설교 들려줘\"",
+                        "\"오늘의 말씀이 뭐야?\"",
+                        "\"AI 상담 시작\"",
+                        "\"성경 읽기\""
+                    ).forEach { example ->
                         Text(
-                            text = "교회 소식",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A5F),
-                            modifier = Modifier.padding(20.dp)
+                            text = example,
+                            fontSize = 14.sp,
+                            color = Color.White.copy(alpha = 0.8f)
                         )
                     }
                 }
-
-            item { Spacer(modifier = Modifier.height(80.dp)) }
             }
 
-            // AI 채팅 플로팅 버튼
+            // AI 채팅 플로팅 버튼 (우측 하단)
             FloatingActionButton(
                 onClick = onChatClick,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(24.dp),
-                containerColor = Color(0xFF1E3A5F),
-                contentColor = Color.White
+                containerColor = Color.White,
+                contentColor = Color(0xFF1E3A5F)
             ) {
                 Text(
                     text = "💬",
@@ -802,6 +866,19 @@ fun HomeScreen(
             }
         }
     }
+}
+
+private fun startVoiceRecognition(
+    context: android.content.Context,
+    viewModel: com.example.nfctapapp.ui.voice.VoiceCommandViewModel
+) {
+    val helper = com.example.nfctapapp.ui.voice.VoiceRecognitionHelper(
+        context = context,
+        onResult = { text -> viewModel.onRecognitionResult(text) },
+        onError = { error -> viewModel.onRecognitionError(error) },
+        onListeningStart = { viewModel.startListening() }
+    )
+    helper.startListening()
 }
 
 @Composable

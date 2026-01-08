@@ -6,6 +6,7 @@ Models are organized by feature:
 - chat: Chat session and message models
 - auth: Authentication and NFC registration models
 - pathway: Pathway suggestion models
+- voice_command: Voice command recognition models
 """
 
 # User models
@@ -50,6 +51,14 @@ from app.models.sermon import (
     SermonDetailResponse
 )
 
+# Voice Command models
+from app.models.voice_command import (
+    VoiceCommandAction,
+    VoiceCommandRequest,
+    VoiceCommandAnalysis,
+    VoiceCommandResponse
+)
+
 __all__ = [
     # User
     "UserDto",
@@ -80,4 +89,9 @@ __all__ = [
     "SermonDto",
     "SermonListResponse",
     "SermonDetailResponse",
+    # Voice Command
+    "VoiceCommandAction",
+    "VoiceCommandRequest",
+    "VoiceCommandAnalysis",
+    "VoiceCommandResponse",
 ]

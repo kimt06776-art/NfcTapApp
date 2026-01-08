@@ -26,9 +26,9 @@ object ApiClient {
      * Backend API Base URL
      *
      * Development: http://10.0.2.2:8000 (Android Emulator → localhost)
-     * Production: 실제 서버 URL로 변경 필요
+     * Production: Render 배포 서버
      */
-    private const val BASE_URL = "http://10.0.2.2:8000"
+    private const val BASE_URL = "https://nfctapapp-backend.onrender.com"
 
     @Provides
     @Singleton

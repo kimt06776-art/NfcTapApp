@@ -113,6 +113,7 @@ class ChatViewModel @Inject constructor(
         if (content.isBlank()) return
         val repo = chatRepository ?: return
 
+        android.util.Log.d("ChatViewModel", "sendMessage called: $content")
         viewModelScope.launch {
             // 세션이 없으면 새로 생성
             var sessionId = _uiState.value.currentSessionId
@@ -142,14 +143,17 @@ class ChatViewModel @Inject constructor(
             )
 
             // AI 응답 스트리밍으로 받기
+            android.util.Log.d("ChatViewModel", "Starting stream...")
             repo.sendMessageStream(currentSessionId, content).collect { response ->
                 when (response) {
                     is StreamResponse.Streaming -> {
+                        android.util.Log.d("ChatViewModel", "Streaming: ${response.content.take(50)}")
                         _uiState.value = _uiState.value.copy(
                             streamingContent = response.content
                         )
                     }
                     is StreamResponse.Complete -> {
+                        android.util.Log.d("ChatViewModel", "Stream complete")
                         val assistantMessage = ChatMessage(content = response.content, isFromUser = false)
                         _uiState.value = _uiState.value.copy(
                             messages = _uiState.value.messages + assistantMessage,
@@ -165,6 +169,7 @@ class ChatViewModel @Inject constructor(
                         }
                     }
                     is StreamResponse.Error -> {
+                        android.util.Log.e("ChatViewModel", "Stream error: ${response.message}")
                         _uiState.value = _uiState.value.copy(
                             isStreaming = false,
                             streamingContent = "",

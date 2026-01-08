@@ -83,4 +83,11 @@ interface ApiService {
     suspend fun getSermonById(
         @Path("sermonId") sermonId: String
     ): Response<SermonDetailResponse>
+
+    // ==================== Voice Command API ====================
+
+    @POST("/api/voice-command")
+    suspend fun analyzeVoiceCommand(
+        @Body request: VoiceCommandRequest
+    ): Response<VoiceCommandResponse>
 }
