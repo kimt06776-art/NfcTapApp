@@ -652,32 +652,49 @@ fun HomeScreen(
                 )
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 24.dp)
-                    .padding(top = 40.dp),
+                modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 환영 인사
-                Text(
-                    text = "반가워요! 누아예요!",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E3A5F),
-                    textAlign = TextAlign.Center
-                )
+                // 누아 캐릭터 이미지 + 텍스트 오버레이
+                Box(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // 누아 캐릭터 이미지 (가로 꽉 차게)
+                    Image(
+                        painter = painterResource(id = R.drawable.nua_character),
+                        contentDescription = "누아 캐릭터",
+                        modifier = Modifier.fillMaxWidth(),
+                        contentScale = ContentScale.FillWidth
+                    )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                    // 텍스트 오버레이
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter)
+                            .padding(top = 60.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "반가워요! 누아예요!",
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF1E3A5F),
+                            textAlign = TextAlign.Center
+                        )
 
-                // 누아 캐릭터 이미지
-                Image(
-                    painter = painterResource(id = R.drawable.nua_character),
-                    contentDescription = "누아 캐릭터",
-                    modifier = Modifier
-                        .size(280.dp)
-                        .padding(16.dp),
-                    contentScale = ContentScale.Fit
-                )
+                        Spacer(modifier = Modifier.height(200.dp))
+
+                        Text(
+                            text = "필요한 기능을 말씀해 주세요",
+                            fontSize = 17.sp,
+                            color = Color(0xFF1E3A5F).copy(alpha = 0.8f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
 
                 // 음성 인식 상태 표시
                 when (voiceUiState.recognitionState) {
@@ -761,20 +778,11 @@ fun HomeScreen(
                         }
                     }
                     else -> {
-                        // 기본 상태: 안내 텍스트와 제안 칩 표시
+                        // 기본 상태: 제안 칩 표시
                         Column(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
-                                text = "필요한 기능을 말씀해 주세요",
-                                fontSize = 17.sp,
-                                color = Color(0xFF1E3A5F).copy(alpha = 0.7f),
-                                textAlign = TextAlign.Center
-                            )
-
-                            Spacer(modifier = Modifier.height(20.dp))
-
                             // 제안 칩 버튼들
                             Column(
                                 modifier = Modifier.fillMaxWidth(),
