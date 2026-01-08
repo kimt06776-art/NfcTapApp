@@ -561,8 +561,8 @@ fun HomeScreen(
                 contentColor = Color(0xFF1E3A5F)
             ) {
                 NavigationBarItem(
-                    icon = { Icon(imageVector = Icons.Rounded.Book, contentDescription = "성경") },
-                    label = { Text(text = "성경", fontSize = 11.sp) },
+                    icon = { Icon(imageVector = Icons.Rounded.Book, contentDescription = "말씀") },
+                    label = { Text(text = "말씀", fontSize = 11.sp) },
                     selected = false,
                     onClick = { onMenuClick("bible") },
                     colors = NavigationBarItemDefaults.colors(
@@ -574,10 +574,27 @@ fun HomeScreen(
                     )
                 )
                 NavigationBarItem(
-                    icon = { Icon(imageVector = Icons.Outlined.MusicNote, contentDescription = "찬양") },
-                    label = { Text(text = "찬양", fontSize = 11.sp) },
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Filled.Mic,
+                            contentDescription = "음성 인식",
+                            modifier = Modifier.size(28.dp)
+                        )
+                    },
+                    label = { Text(text = "음성", fontSize = 11.sp) },
                     selected = false,
-                    onClick = { onMenuClick("worship") },
+                    onClick = {
+                        when (voiceUiState.recognitionState) {
+                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.IDLE,
+                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> {
+                                permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                            }
+                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS -> {
+                                voiceViewModel.reset()
+                            }
+                            else -> {}
+                        }
+                    },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E3A5F),
                         selectedTextColor = Color(0xFF1E3A5F),
@@ -587,23 +604,15 @@ fun HomeScreen(
                     )
                 )
                 NavigationBarItem(
-                    icon = { Icon(imageVector = Icons.Rounded.Groups, contentDescription = "커뮤니티") },
-                    label = { Text(text = "커뮤니티", fontSize = 11.sp) },
+                    icon = {
+                        Text(
+                            text = "💬",
+                            fontSize = 24.sp
+                        )
+                    },
+                    label = { Text(text = "대화", fontSize = 11.sp) },
                     selected = false,
-                    onClick = { onMenuClick("community") },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color(0xFF1E3A5F),
-                        selectedTextColor = Color(0xFF1E3A5F),
-                        indicatorColor = Color(0xFFE3F2FD),
-                        unselectedIconColor = Color(0xFF888888),
-                        unselectedTextColor = Color(0xFF888888)
-                    )
-                )
-                NavigationBarItem(
-                    icon = { Icon(imageVector = Icons.Outlined.EmojiEvents, contentDescription = "신앙활동") },
-                    label = { Text(text = "신앙활동", fontSize = 11.sp) },
-                    selected = false,
-                    onClick = { onMenuClick("gamification") },
+                    onClick = onChatClick,
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Color(0xFF1E3A5F),
                         selectedTextColor = Color(0xFF1E3A5F),
@@ -635,9 +644,9 @@ fun HomeScreen(
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color(0xFF1E3A5F),
-                            Color(0xFF2D5478),
-                            Color(0xFF3D6E91)
+                            Color(0xFFB8D8F0),
+                            Color(0xFFD4E8F7),
+                            Color(0xFFE8F4FB)
                         )
                     )
                 )
@@ -645,30 +654,30 @@ fun HomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 40.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 메인 타이틀
+                // 환영 인사
                 Text(
-                    text = "무엇을 도와드릴까요?",
-                    fontSize = 28.sp,
+                    text = "반가워요! 누아예요!",
+                    fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = Color(0xFF1E3A5F),
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-                // 설명
-                Text(
-                    text = "음성으로 말하거나 아래 버튼을 터치하세요",
-                    fontSize = 16.sp,
-                    color = Color.White.copy(alpha = 0.9f),
-                    textAlign = TextAlign.Center
+                // 누아 캐릭터 이미지
+                Image(
+                    painter = painterResource(id = R.drawable.nua_character),
+                    contentDescription = "누아 캐릭터",
+                    modifier = Modifier
+                        .size(280.dp)
+                        .padding(16.dp),
+                    contentScale = ContentScale.Fit
                 )
-
-                Spacer(modifier = Modifier.height(48.dp))
 
                 // 음성 인식 상태 표시
                 when (voiceUiState.recognitionState) {
@@ -677,61 +686,35 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            // Liquid Animation
-                            com.example.nfctapapp.ui.voice.LiquidBlobAnimation(
-                                isAnimating = true,
-                                color = Color.White
-                            )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Sound Wave Bars
                             com.example.nfctapapp.ui.voice.SoundWaveBarsAnimation(
                                 isAnimating = true,
-                                color = Color.White.copy(alpha = 0.8f)
+                                color = Color(0xFF1E3A5F).copy(alpha = 0.6f)
                             )
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
+                            Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                text = "음성을 듣고 있습니다...",
+                                text = "듣고 있어요...",
                                 fontSize = 16.sp,
-                                color = Color.White.copy(alpha = 0.9f),
+                                color = Color(0xFF1E3A5F).copy(alpha = 0.8f),
                                 textAlign = TextAlign.Center
                             )
                         }
                     }
                     com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING -> {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.White.copy(alpha = 0.15f)
-                            )
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                modifier = Modifier.padding(20.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                CircularProgressIndicator(color = Color.White)
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "🤖 명령을 분석하고 있습니다...",
-                                    fontSize = 16.sp,
-                                    color = Color.White,
-                                    textAlign = TextAlign.Center
-                                )
-                                if (voiceUiState.recognizedText != null) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "\"${voiceUiState.recognizedText}\"",
-                                        fontSize = 14.sp,
-                                        color = Color.White.copy(alpha = 0.8f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                }
-                            }
+                            CircularProgressIndicator(
+                                color = Color(0xFF1E3A5F),
+                                modifier = Modifier.size(32.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "분석 중이에요...",
+                                fontSize = 16.sp,
+                                color = Color(0xFF1E3A5F).copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                     com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS -> {
@@ -740,16 +723,17 @@ fun HomeScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
+                                    .padding(horizontal = 16.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFF4CAF50).copy(alpha = 0.3f)
-                                )
+                                    containerColor = Color(0xFF4CAF50).copy(alpha = 0.15f)
+                                ),
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Text(
                                     text = "✅ $message",
-                                    fontSize = 16.sp,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(20.dp),
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF2E7D32),
+                                    modifier = Modifier.padding(16.dp),
                                     textAlign = TextAlign.Center
                                 )
                             }
@@ -760,91 +744,81 @@ fun HomeScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
+                                    .padding(horizontal = 16.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = Color(0xFFE87B7B).copy(alpha = 0.3f)
-                                )
+                                    containerColor = Color(0xFFE87B7B).copy(alpha = 0.15f)
+                                ),
+                                shape = RoundedCornerShape(16.dp)
                             ) {
                                 Text(
                                     text = "❌ ${voiceUiState.error}",
-                                    fontSize = 16.sp,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(20.dp),
+                                    fontSize = 15.sp,
+                                    color = Color(0xFFC62828),
+                                    modifier = Modifier.padding(16.dp),
                                     textAlign = TextAlign.Center
                                 )
                             }
                         }
                     }
                     else -> {
-                        // 기본 상태: 아무것도 표시하지 않음
+                        // 기본 상태: 안내 텍스트와 제안 칩 표시
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "필요한 기능을 말씀해 주세요",
+                                fontSize = 17.sp,
+                                color = Color(0xFF1E3A5F).copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            // 제안 칩 버튼들
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                ) {
+                                    SuggestionChip(
+                                        text = "오늘의 말씀",
+                                        onClick = {
+                                            voiceViewModel.onRecognitionResult("오늘의 말씀")
+                                        }
+                                    )
+                                    SuggestionChip(
+                                        text = "설교 들려줘",
+                                        onClick = {
+                                            voiceViewModel.onRecognitionResult("설교 들려줘")
+                                        }
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
+                                ) {
+                                    SuggestionChip(
+                                        text = "상담하고 싶어",
+                                        onClick = {
+                                            voiceViewModel.onRecognitionResult("상담하고 싶어")
+                                        }
+                                    )
+                                    SuggestionChip(
+                                        text = "영적 안내",
+                                        onClick = {
+                                            voiceViewModel.onRecognitionResult("영적 안내")
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                // 큰 음성 인식 버튼
-                FloatingActionButton(
-                    onClick = {
-                        when (voiceUiState.recognitionState) {
-                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.IDLE,
-                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> {
-                                permissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                            }
-                            com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS -> {
-                                voiceViewModel.reset()
-                            }
-                            else -> {
-                                // 진행 중일 때는 아무것도 안함
-                            }
-                        }
-                    },
-                    modifier = Modifier.size(100.dp),
-                    containerColor = when (voiceUiState.recognitionState) {
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.LISTENING -> Color(0xFFE87B7B)
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING -> Color(0xFFF5A962)
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS -> Color(0xFF4CAF50)
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> Color(0xFFE87B7B).copy(alpha = 0.6f)
-                        else -> Color.White
-                    },
-                    contentColor = when (voiceUiState.recognitionState) {
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.LISTENING,
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING,
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.SUCCESS,
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.ERROR -> Color.White
-                        else -> Color(0xFF1E3A5F)
-                    }
-                ) {
-                    when (voiceUiState.recognitionState) {
-                        com.example.nfctapapp.ui.voice.VoiceRecognitionState.PROCESSING -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(40.dp),
-                                color = Color.White
-                            )
-                        }
-                        else -> {
-                            Icon(
-                                imageVector = Icons.Filled.Mic,
-                                contentDescription = "음성 인식",
-                                modifier = Modifier.size(48.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            // AI 채팅 플로팅 버튼 (우측 하단)
-            FloatingActionButton(
-                onClick = onChatClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(24.dp),
-                containerColor = Color.White,
-                contentColor = Color(0xFF1E3A5F)
-            ) {
-                Text(
-                    text = "💬",
-                    fontSize = 28.sp
-                )
             }
         }
     }
@@ -1484,5 +1458,34 @@ fun SplashScreen() {
                 fontSize = 16.sp
             )
         }
+    }
+}
+
+/**
+ * 제안 칩 버튼
+ */
+@Composable
+fun SuggestionChip(
+    text: String,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.height(42.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.White,
+            contentColor = Color(0xFF1E3A5F)
+        ),
+        shape = RoundedCornerShape(20.dp),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
+        )
+    ) {
+        Text(
+            text = text,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium
+        )
     }
 }
