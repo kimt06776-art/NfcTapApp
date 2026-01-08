@@ -53,7 +53,7 @@ async def chat_stream(request: ChatStreamRequest):
         # Convert to OpenAI format
         conversation_history = []
         for msg in messages:
-            role = "user" if msg.isFromUser else "assistant"
+            role = "user" if msg.is_from_user else "assistant"
             conversation_history.append({
                 "role": role,
                 "content": msg.content
