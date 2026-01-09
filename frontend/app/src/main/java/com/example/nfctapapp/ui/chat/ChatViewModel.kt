@@ -2,7 +2,7 @@ package com.example.nfctapapp.ui.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.ChatApiService
 import com.example.nfctapapp.data.remote.api.ChatSessionDto
 import com.example.nfctapapp.data.repository.ChatRepository
 import com.example.nfctapapp.data.repository.StreamResponse
@@ -33,7 +33,7 @@ data class ChatUiState(
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val chatApiService: ChatApiService
 ) : ViewModel() {
 
     private var chatRepository: ChatRepository? = null
@@ -45,7 +45,7 @@ class ChatViewModel @Inject constructor(
     fun initialize(userId: String) {
         if (this.userId == userId) return
         this.userId = userId
-        this.chatRepository = ChatRepository(apiService, userId)
+        this.chatRepository = ChatRepository(chatApiService, userId)
         loadSessions()
     }
 

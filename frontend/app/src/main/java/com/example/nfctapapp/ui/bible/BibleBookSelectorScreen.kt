@@ -47,9 +47,8 @@ fun BibleBookSelectorScreen(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF1E3A5F),
-                        Color(0xFF2D5478),
-                        Color(0xFF3D6E91)
+                        Color(0xFF7B7A77),  // Stone Gray
+                        Color(0xFF4F4E4B)   // Deep Stone
                     )
                 )
             )
@@ -70,7 +69,7 @@ fun BibleBookSelectorScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "뒤로가기",
-                        tint = Color.White
+                        tint = Color(0xFFC1BFBB)  // Tertiary Text
                     )
                 }
 
@@ -78,7 +77,7 @@ fun BibleBookSelectorScreen(
                     text = "성경 선택",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = Color(0xFFF5F4F2)  // Primary Text
                 )
             }
 
@@ -150,7 +149,7 @@ private fun BookSelectionView(
                 text = "구약 (39권)",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = Color(0xFFF5F4F2),  // Primary Text
                 modifier = Modifier.padding(vertical = 12.dp)
             )
         }
@@ -170,7 +169,7 @@ private fun BookSelectionView(
                 text = "신약 (27권)",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White,
+                color = Color(0xFFF5F4F2),  // Primary Text
                 modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
             )
         }
@@ -211,7 +210,7 @@ private fun StepIndicator(
             selectedText = selectedBookName
         )
 
-        Text(text = "›", color = Color.White.copy(alpha = 0.5f), fontSize = 20.sp)
+        Text(text = "›", color = Color(0xFFC1BFBB).copy(alpha = 0.5f), fontSize = 20.sp)
 
         // 장
         StepItem(
@@ -221,7 +220,7 @@ private fun StepIndicator(
             selectedText = selectedChapter?.let { "${it}장" }
         )
 
-        Text(text = "›", color = Color.White.copy(alpha = 0.5f), fontSize = 20.sp)
+        Text(text = "›", color = Color(0xFFC1BFBB).copy(alpha = 0.5f), fontSize = 20.sp)
 
         // 절
         StepItem(
@@ -249,16 +248,16 @@ private fun RowScope.StepItem(
             fontSize = 14.sp,
             fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
             color = when {
-                isActive -> Color.White
-                isCompleted -> Color(0xFF6B8ED6)
-                else -> Color.White.copy(alpha = 0.5f)
+                isActive -> Color(0xFFF5F4F2)  // Primary Text
+                isCompleted -> Color(0xFF9A8F7A)  // Hidden Warm
+                else -> Color(0xFFC1BFBB).copy(alpha = 0.5f)  // Tertiary Text
             }
         )
         if (selectedText != null) {
             Text(
                 text = selectedText,
                 fontSize = 12.sp,
-                color = Color(0xFF6B8ED6),
+                color = Color(0xFF9A8F7A),  // Hidden Warm
                 maxLines = 1
             )
         }
@@ -279,9 +278,9 @@ private fun BookCard(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                Color(0xFF6B8ED6)
+                Color(0xFF9A8F7A)  // Hidden Warm
             } else {
-                Color.White.copy(alpha = 0.95f)
+                Color(0xFF4F4E4B)  // Deep Stone
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 8.dp else 4.dp)
@@ -296,7 +295,7 @@ private fun BookCard(
                 text = book.name,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isSelected) Color.White else Color(0xFF1E3A5F),
+                color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2),
                 maxLines = 2,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
@@ -319,7 +318,7 @@ private fun ChapterSelectionView(
         // 뒤로 버튼
         TextButton(
             onClick = onBackToBooks,
-            colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD8D6D2))  // Secondary Text
         ) {
             Text("← 책 선택으로 돌아가기")
         }
@@ -361,9 +360,9 @@ private fun ChapterCard(
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
-                Color(0xFF6B8ED6)
+                Color(0xFF9A8F7A)  // Hidden Warm
             } else {
-                Color.White.copy(alpha = 0.95f)
+                Color(0xFF4F4E4B)  // Deep Stone
             }
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 6.dp else 2.dp)
@@ -376,7 +375,7 @@ private fun ChapterCard(
                 text = chapter.toString(),
                 fontSize = 16.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) Color.White else Color(0xFF1E3A5F)
+                color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2)
             )
         }
     }
@@ -400,7 +399,7 @@ private fun VerseSelectionView(
         // 뒤로 버튼
         TextButton(
             onClick = onBackToChapters,
-            colors = ButtonDefaults.textButtonColors(contentColor = Color.White)
+            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD8D6D2))  // Secondary Text
         ) {
             Text("← 장 선택으로 돌아가기")
         }
@@ -439,7 +438,7 @@ private fun VerseCard(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.95f)
+            containerColor = Color(0xFF4F4E4B)  // Deep Stone
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -451,7 +450,7 @@ private fun VerseCard(
                 text = verse.toString(),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
-                color = Color(0xFF1E3A5F)
+                color = Color(0xFFD8D6D2)  // Secondary Text
             )
         }
     }

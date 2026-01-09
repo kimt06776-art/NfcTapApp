@@ -1,6 +1,6 @@
 package com.example.nfctapapp.data
 
-import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.SermonApiService
 import com.example.nfctapapp.data.remote.api.SermonDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -57,7 +57,7 @@ object SampleSermonData {
  */
 @Singleton
 class SermonRepository @Inject constructor(
-    private val apiService: ApiService
+    private val sermonApiService: SermonApiService
 ) {
 
     private fun SermonDto.toSermon(): Sermon {
@@ -84,7 +84,7 @@ class SermonRepository @Inject constructor(
     suspend fun getAllSermons(): Result<List<Sermon>> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getAllSermons()
+                val response = sermonApiService.getAllSermons()
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -106,7 +106,7 @@ class SermonRepository @Inject constructor(
     suspend fun getLatestSermon(): Result<Sermon?> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getLatestSermon()
+                val response = sermonApiService.getLatestSermon()
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -128,7 +128,7 @@ class SermonRepository @Inject constructor(
     suspend fun getSermonById(id: String): Result<Sermon?> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getSermonById(id)
+                val response = sermonApiService.getSermonById(id)
 
                 if (response.isSuccessful) {
                     val body = response.body()

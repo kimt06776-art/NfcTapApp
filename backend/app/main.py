@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.config import settings
-from app.routers import pathway, chat, auth, sermon, voice_command
+from app.routers import pathway, chat, auth, sermon, voice_command, sermon_note
 from app.chains.pipeline import health_check_pipeline
 
 # Configure logging
@@ -66,6 +66,7 @@ app.include_router(chat.router, prefix="/api", tags=["chat"])
 app.include_router(auth.router, prefix="/api", tags=["auth"])
 app.include_router(sermon.router, prefix="/api", tags=["sermon"])
 app.include_router(voice_command.router, prefix="/api", tags=["voice-command"])
+app.include_router(sermon_note.router, prefix="/api", tags=["sermon-note"])
 
 
 @app.get("/")

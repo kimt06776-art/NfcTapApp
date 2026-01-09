@@ -66,9 +66,35 @@ object ApiClient {
             .build()
     }
 
+    // ==================== 도메인별 ApiService ====================
+
     @Provides
     @Singleton
-    fun provideApiService(retrofit: Retrofit): ApiService {
-        return retrofit.create(ApiService::class.java)
+    fun provideAuthApiService(retrofit: Retrofit): AuthApiService {
+        return retrofit.create(AuthApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatApiService(retrofit: Retrofit): ChatApiService {
+        return retrofit.create(ChatApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSermonApiService(retrofit: Retrofit): SermonApiService {
+        return retrofit.create(SermonApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideVoiceCommandApiService(retrofit: Retrofit): VoiceCommandApiService {
+        return retrofit.create(VoiceCommandApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSermonNoteApiService(retrofit: Retrofit): SermonNoteApiService {
+        return retrofit.create(SermonNoteApiService::class.java)
     }
 }

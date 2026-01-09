@@ -2,51 +2,40 @@ package com.example.nfctapapp.ui.community
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.nfctapapp.data.CommunityPost
-import com.example.nfctapapp.data.CommunityRepository
-import com.example.nfctapapp.data.PostType
+
+// colors.md 색상 시스템
+internal val StoneGray = Color(0xFF7B7A77)
+internal val DeepStone = Color(0xFF4F4E4B)
+internal val HiddenWarm = Color(0xFF9A8F7A)
+internal val PrimaryText = Color(0xFFF5F4F2)
+internal val SecondaryText = Color(0xFFD8D6D2)
+internal val TertiaryText = Color(0xFFC1BFBB)
+internal val CardBackgroundDark = Color(0xFF5A5957)
 
 @Composable
 fun CommunityScreen(onBackClick: () -> Unit) {
-    var selectedType by remember { mutableStateOf<PostType?>(null) }
-
-    val posts = remember(selectedType) {
-        if (selectedType == null) {
-            CommunityRepository.getAllPosts()
-        } else {
-            CommunityRepository.getPostsByType(selectedType!!)
-        }
-    }
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("신앙 나눔", "교회 소식")
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF1E3A5F),
-                        Color(0xFF2D5478),
-                        Color(0xFF3D6E91)
-                    )
+                    colors = listOf(StoneGray, DeepStone)
                 )
             )
     ) {
@@ -66,215 +55,57 @@ fun CommunityScreen(onBackClick: () -> Unit) {
                     Icon(
                         imageVector = Icons.Default.ArrowBack,
                         contentDescription = "뒤로가기",
-                        tint = Color.White
+                        tint = PrimaryText
                     )
                 }
 
                 Text(
-                    text = "커뮤니티",
+                    text = "공동체",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    color = PrimaryText
                 )
             }
 
-            // 카테고리 필터
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = selectedType == null,
-                    onClick = { selectedType = null },
-                    label = { Text("전체") },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = Color.White,
-                        selectedLabelColor = Color(0xFF1E3A5F),
-                        containerColor = Color.White.copy(alpha = 0.3f),
-                        labelColor = Color.White
+            // 탭 바
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = PrimaryText,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                        height = 2.dp,
+                        color = HiddenWarm
                     )
-                )
-
-                PostType.entries.forEach { type ->
-                    FilterChip(
-                        selected = selectedType == type,
-                        onClick = { selectedType = type },
-                        label = { Text("${type.emoji} ${type.displayName}") },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Color.White,
-                            selectedLabelColor = Color(0xFF1E3A5F),
-                            containerColor = Color.White.copy(alpha = 0.3f),
-                            labelColor = Color.White
-                        )
+                },
+                divider = {
+                    HorizontalDivider(
+                        color = TertiaryText.copy(alpha = 0.3f),
+                        thickness = 0.5.dp
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 게시글 목록
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                items(posts) { post ->
-                    CommunityPostCard(post = post)
-                }
-                item {
-                    Spacer(modifier = Modifier.height(20.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CommunityPostCard(post: CommunityPost) {
-    var isLiked by remember { mutableStateOf(post.isLiked) }
-    var likeCount by remember { mutableStateOf(post.likes) }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.95f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-            // 작성자 정보
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 프로필 아이콘 (레벨 표시)
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF6B8ED6)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = post.author.first().toString(),
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    Column {
-                        Text(
-                            text = post.author,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF1E3A5F)
-                        )
-                        Text(
-                            text = "Lv.${post.authorLevel} · ${post.timestamp}",
-                            fontSize = 12.sp,
-                            color = Color(0xFF888888)
-                        )
-                    }
-                }
-
-                // 게시글 타입 배지
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = when (post.type) {
-                        PostType.PRAYER -> Color(0xFFE87B7B)
-                        PostType.TESTIMONY -> Color(0xFFF5A962)
-                        PostType.QUESTION -> Color(0xFF6B8ED6)
-                        PostType.SHARING -> Color(0xFF7BC47F)
-                    }
-                ) {
-                    Text(
-                        text = "${post.type.emoji} ${post.type.displayName}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 게시글 내용
-            Text(
-                text = post.content,
-                fontSize = 15.sp,
-                color = Color(0xFF333333),
-                lineHeight = 22.sp
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Divider(color = Color(0xFFE0E0E0))
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 좋아요 & 댓글
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 좋아요 버튼
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(
-                        onClick = {
-                            isLiked = !isLiked
-                            likeCount = if (isLiked) likeCount + 1 else likeCount - 1
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = {
+                            Text(
+                                text = title,
+                                fontSize = 15.sp,
+                                fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedTab == index) PrimaryText else SecondaryText
+                            )
                         }
-                    ) {
-                        Icon(
-                            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                            contentDescription = "좋아요",
-                            tint = if (isLiked) Color(0xFFE87B7B) else Color(0xFF888888),
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                    Text(
-                        text = likeCount.toString(),
-                        fontSize = 14.sp,
-                        color = Color(0xFF666666)
                     )
                 }
+            }
 
-                // 댓글
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.ChatBubbleOutline,
-                        contentDescription = "댓글",
-                        tint = Color(0xFF888888),
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "${post.comments}개",
-                        fontSize = 14.sp,
-                        color = Color(0xFF666666)
-                    )
-                }
+            // 탭 컨텐츠
+            when (selectedTab) {
+                0 -> FaithSharingTab()
+                1 -> ChurchNewsTab()
             }
         }
     }

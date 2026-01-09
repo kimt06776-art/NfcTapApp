@@ -1,10 +1,16 @@
 package com.example.nfctapapp.ui.chat
 
+import android.Manifest
+import android.content.Intent
+import android.os.Bundle
+import android.speech.RecognitionListener
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -15,6 +21,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
@@ -25,20 +32,25 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
+import java.util.Locale
 
-data class SuggestionItem(
-    val emoji: String,
-    val text: String,
-    val message: String
-)
+// Color System (from colors.md)
+private object ChatColors {
+    val StoneGray = Color(0xFF7B7A77)      // Background
+    val DeepStone = Color(0xFF4F4E4B)      // Depth/Ground
+    val HiddenWarm = Color(0xFF9A8F7A)     // Subtle accent
+    val PrimaryText = Color(0xFFF5F4F2)    // Main text
+    val SecondaryText = Color(0xFFD8D6D2)  // Supporting text
+    val TertiaryText = Color(0xFFC1BFBB)   // UI elements
+}
 
 data class DrawerMenuItem(
     val id: String,
@@ -68,7 +80,7 @@ fun ChatScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                drawerContainerColor = Color(0xFF1E3A5F)
+                drawerContainerColor = ChatColors.DeepStone
             ) {
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -84,7 +96,7 @@ fun ChatScreen(
                         text = "대화 목록",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = ChatColors.PrimaryText
                     )
 
                     // 새 대화 버튼
@@ -97,7 +109,7 @@ fun ChatScreen(
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "새 대화",
-                            tint = Color.White
+                            tint = ChatColors.PrimaryText
                         )
                     }
                 }
@@ -113,14 +125,14 @@ fun ChatScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
-                            color = Color.White,
+                            color = ChatColors.PrimaryText,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 } else if (uiState.sessions.isEmpty()) {
                     Text(
                         text = "저장된 대화가 없습니다",
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = ChatColors.SecondaryText,
                         fontSize = 14.sp,
                         modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                     )
@@ -190,7 +202,7 @@ private fun SessionItem(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                if (isSelected) Color.White.copy(alpha = 0.1f) else Color.Transparent
+                if (isSelected) ChatColors.StoneGray.copy(alpha = 0.5f) else Color.Transparent
             )
             .padding(horizontal = 24.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -202,11 +214,11 @@ private fun SessionItem(
                 onValueChange = { editedTitle = it },
                 modifier = Modifier.weight(1f),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
-                    focusedBorderColor = Color.White.copy(alpha = 0.5f),
-                    unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                    cursorColor = Color.White
+                    focusedTextColor = ChatColors.PrimaryText,
+                    unfocusedTextColor = ChatColors.PrimaryText,
+                    focusedBorderColor = ChatColors.HiddenWarm,
+                    unfocusedBorderColor = ChatColors.TertiaryText,
+                    cursorColor = ChatColors.PrimaryText
                 ),
                 singleLine = true,
                 textStyle = LocalTextStyle.current.copy(fontSize = 14.sp),
@@ -225,14 +237,14 @@ private fun SessionItem(
                 Icon(
                     imageVector = Icons.Rounded.Check,
                     contentDescription = "저장",
-                    tint = Color.White.copy(alpha = 0.8f),
+                    tint = ChatColors.SecondaryText,
                     modifier = Modifier.size(18.dp)
                 )
             }
         } else {
             Text(
                 text = title,
-                color = Color.White,
+                color = ChatColors.PrimaryText,
                 fontSize = 14.sp,
                 modifier = Modifier
                     .weight(1f)
@@ -250,7 +262,7 @@ private fun SessionItem(
                 Icon(
                     imageVector = Icons.Rounded.Edit,
                     contentDescription = "편집",
-                    tint = Color.White.copy(alpha = 0.6f),
+                    tint = ChatColors.TertiaryText,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -262,7 +274,7 @@ private fun SessionItem(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "삭제",
-                    tint = Color.White.copy(alpha = 0.6f),
+                    tint = ChatColors.TertiaryText,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -278,14 +290,61 @@ private fun ChatContent(
     onCloseClick: () -> Unit
 ) {
     var inputText by remember { mutableStateOf("") }
+    var isListening by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    val suggestions = listOf(
-        SuggestionItem("😔", "힘든 일이 있어요", "요즘 힘든 일이 있어서 이야기하고 싶어요"),
-        SuggestionItem("🙏", "기도 제목이 있어요", "기도 제목이 있는데 함께 나누고 싶어요"),
-        SuggestionItem("📖", "말씀을 더 알고 싶어요", "성경 말씀에 대해 더 알고 싶어요")
-    )
+    // 음성 인식기
+    val speechRecognizer = remember { SpeechRecognizer.createSpeechRecognizer(context) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            speechRecognizer.destroy()
+        }
+    }
+
+    // 음성 인식 리스너
+    LaunchedEffect(Unit) {
+        speechRecognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {
+                isListening = true
+            }
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {
+                isListening = false
+            }
+            override fun onError(error: Int) {
+                isListening = false
+            }
+            override fun onResults(results: Bundle?) {
+                isListening = false
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (!matches.isNullOrEmpty()) {
+                    inputText = matches[0]
+                }
+            }
+            override fun onPartialResults(partialResults: Bundle?) {
+                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                if (!matches.isNullOrEmpty()) {
+                    inputText = matches[0]
+                }
+            }
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+    }
+
+    // 권한 요청 런처
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startSpeechRecognition(speechRecognizer)
+        }
+    }
+
 
     // 새 메시지가 추가되거나 스트리밍 중일 때 자동 스크롤
     LaunchedEffect(uiState.messages.size, uiState.isStreaming, uiState.streamingContent) {
@@ -303,9 +362,8 @@ private fun ChatContent(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF1E3A5F),
-                        Color(0xFF2D5478),
-                        Color(0xFF3D6E91)
+                        ChatColors.StoneGray,
+                        ChatColors.DeepStone
                     )
                 )
             )
@@ -327,65 +385,41 @@ private fun ChatContent(
                     Icon(
                         imageVector = Icons.Default.Menu,
                         contentDescription = "메뉴",
-                        tint = Color.White
+                        tint = ChatColors.TertiaryText
                     )
                 }
 
                 Text(
-                    text = "대화",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    text = "누아와 대화",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = ChatColors.PrimaryText
                 )
 
                 IconButton(onClick = onCloseClick) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "닫기",
-                        tint = Color.White
+                        tint = ChatColors.TertiaryText
                     )
                 }
             }
 
             // Content Area
             if (uiState.messages.isEmpty() && !uiState.isStreaming) {
-                // Empty State - 추천 질문 UI
+                // Empty State
                 Box(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    ) {
-                        Text(
-                            text = "💬",
-                            fontSize = 48.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Text(
-                            text = "오늘 어떤 이야기를\n나눠볼까요?",
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            textAlign = TextAlign.Center,
-                            lineHeight = 32.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        suggestions.forEach { suggestion ->
-                            SuggestionButton(
-                                suggestion = suggestion,
-                                onClick = { onSendMessage(suggestion.message) }
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
-                    }
+                    Text(
+                        text = "무엇이든 물어보세요",
+                        fontSize = 18.sp,
+                        color = ChatColors.SecondaryText,
+                        textAlign = TextAlign.Center
+                    )
                 }
             } else {
                 // Messages
@@ -421,7 +455,7 @@ private fun ChatContent(
                                         bottomEnd = 16.dp
                                     ),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color.White.copy(alpha = 0.9f)
+                                        containerColor = ChatColors.DeepStone.copy(alpha = 0.8f)
                                     ),
                                     modifier = Modifier.widthIn(max = 280.dp)
                                 ) {
@@ -434,12 +468,12 @@ private fun ChatContent(
                                             CircularProgressIndicator(
                                                 modifier = Modifier.size(16.dp),
                                                 strokeWidth = 2.dp,
-                                                color = Color(0xFF1E3A5F)
+                                                color = ChatColors.SecondaryText
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Text(
                                                 text = "생각 중...",
-                                                color = Color(0xFF666666),
+                                                color = ChatColors.SecondaryText,
                                                 fontSize = 14.sp
                                             )
                                         }
@@ -448,7 +482,7 @@ private fun ChatContent(
                                         Text(
                                             text = uiState.streamingContent,
                                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                                            color = Color(0xFF1E3A5F),
+                                            color = ChatColors.PrimaryText,
                                             fontSize = 15.sp,
                                             lineHeight = 22.sp
                                         )
@@ -468,7 +502,7 @@ private fun ChatContent(
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .imePadding()
-                    .background(Color.White.copy(alpha = 0.1f))
+                    .background(ChatColors.DeepStone)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -477,21 +511,55 @@ private fun ChatContent(
                     onValueChange = { inputText = it },
                     modifier = Modifier.weight(1f),
                     placeholder = {
-                        Text("메시지를 입력하세요...", color = Color.White.copy(alpha = 0.5f))
+                        Text(
+                            if (isListening) "듣고 있어요..." else "메시지를 입력하세요...",
+                            color = if (isListening) ChatColors.HiddenWarm else ChatColors.TertiaryText
+                        )
                     },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color.White.copy(alpha = 0.5f),
-                        unfocusedBorderColor = Color.White.copy(alpha = 0.3f),
-                        cursorColor = Color.White
+                        focusedTextColor = ChatColors.PrimaryText,
+                        unfocusedTextColor = ChatColors.PrimaryText,
+                        focusedBorderColor = if (isListening) ChatColors.HiddenWarm else ChatColors.HiddenWarm,
+                        unfocusedBorderColor = if (isListening) ChatColors.HiddenWarm else ChatColors.StoneGray,
+                        cursorColor = ChatColors.PrimaryText,
+                        focusedContainerColor = ChatColors.StoneGray.copy(alpha = 0.3f),
+                        unfocusedContainerColor = ChatColors.StoneGray.copy(alpha = 0.3f)
                     ),
                     shape = RoundedCornerShape(24.dp),
                     singleLine = true
                 )
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(8.dp))
 
+                // 마이크 버튼
+                IconButton(
+                    onClick = {
+                        if (isListening) {
+                            speechRecognizer.stopListening()
+                            isListening = false
+                        } else {
+                            permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    },
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (isListening) ChatColors.HiddenWarm.copy(alpha = 0.8f)
+                            else ChatColors.StoneGray.copy(alpha = 0.5f)
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = "음성 입력",
+                        tint = if (isListening) ChatColors.PrimaryText else ChatColors.SecondaryText,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // 전송 버튼
                 IconButton(
                     onClick = {
                         if (inputText.isNotBlank()) {
@@ -502,50 +570,15 @@ private fun ChatContent(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color.White)
+                        .background(ChatColors.HiddenWarm)
                 ) {
                     Icon(
                         imageVector = Icons.Default.Send,
                         contentDescription = "전송",
-                        tint = Color(0xFF1E3A5F)
+                        tint = ChatColors.PrimaryText
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun SuggestionButton(
-    suggestion: SuggestionItem,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.15f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = suggestion.emoji,
-                fontSize = 24.sp
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = suggestion.text,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
-                color = Color.White
-            )
         }
     }
 }
@@ -565,19 +598,29 @@ private fun ChatBubble(message: ChatMessage) {
             ),
             colors = CardDefaults.cardColors(
                 containerColor = if (message.isFromUser)
-                    Color(0xFF6B8ED6)
+                    ChatColors.HiddenWarm
                 else
-                    Color.White.copy(alpha = 0.9f)
+                    ChatColors.DeepStone.copy(alpha = 0.8f)
             ),
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Text(
                 text = message.content,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                color = if (message.isFromUser) Color.White else Color(0xFF1E3A5F),
+                color = ChatColors.PrimaryText,
                 fontSize = 15.sp,
                 lineHeight = 22.sp
             )
         }
     }
+}
+
+private fun startSpeechRecognition(speechRecognizer: SpeechRecognizer) {
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.KOREAN.toString())
+        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+    }
+    speechRecognizer.startListening(intent)
 }

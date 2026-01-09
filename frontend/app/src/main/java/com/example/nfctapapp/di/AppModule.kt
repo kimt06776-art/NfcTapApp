@@ -2,7 +2,7 @@ package com.example.nfctapapp.di
 
 import android.content.Context
 import com.example.nfctapapp.data.local.UserPreferences
-import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.AuthApiService
 import com.example.nfctapapp.data.repository.AuthRepository
 import com.example.nfctapapp.data.repository.AuthRepositoryImpl
 import com.example.nfctapapp.data.repository.AssetBibleRepository
@@ -43,11 +43,11 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAuthRepository(
-        apiService: ApiService,
+        authApiService: AuthApiService,
         userPreferences: UserPreferences,
         deviceUtils: DeviceUtils
     ): AuthRepository {
-        return AuthRepositoryImpl(apiService, userPreferences, deviceUtils)
+        return AuthRepositoryImpl(authApiService, userPreferences, deviceUtils)
     }
 
     /**

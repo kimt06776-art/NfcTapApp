@@ -1,6 +1,6 @@
 package com.example.nfctapapp.data.repository
 
-import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.ChatApiService
 import com.example.nfctapapp.data.remote.api.ChatMessageDto
 import com.example.nfctapapp.data.remote.api.ChatMessageInsert
 import com.example.nfctapapp.data.remote.api.ChatSessionDto
@@ -24,7 +24,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class ChatRepository @Inject constructor(
-    private val apiService: ApiService,
+    private val chatApiService: ChatApiService,
     private val userId: String
 ) {
 
@@ -33,7 +33,7 @@ class ChatRepository @Inject constructor(
     suspend fun createSession(title: String? = null): Result<ChatSessionDto> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.createSession(
+                val response = chatApiService.createSession(
                     SessionCreateRequest(userId = userId, title = title)
                 )
 
@@ -56,7 +56,7 @@ class ChatRepository @Inject constructor(
     suspend fun getSessions(): Result<List<ChatSessionDto>> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getSessions(userId)
+                val response = chatApiService.getSessions(userId)
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -77,7 +77,7 @@ class ChatRepository @Inject constructor(
     suspend fun updateSessionTitle(sessionId: String, title: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.updateSessionTitle(
+                val response = chatApiService.updateSessionTitle(
                     sessionId,
                     SessionUpdateRequest(title = title)
                 )
@@ -96,7 +96,7 @@ class ChatRepository @Inject constructor(
     suspend fun deleteSession(sessionId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.deleteSession(sessionId)
+                val response = chatApiService.deleteSession(sessionId)
 
                 if (response.isSuccessful) {
                     Result.success(Unit)
@@ -114,7 +114,7 @@ class ChatRepository @Inject constructor(
     suspend fun getMessages(sessionId: String): Result<List<ChatMessageDto>> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.getMessages(sessionId)
+                val response = chatApiService.getMessages(sessionId)
 
                 if (response.isSuccessful) {
                     val body = response.body()
@@ -139,7 +139,7 @@ class ChatRepository @Inject constructor(
     ): Result<ChatMessageDto> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.saveMessage(
+                val response = chatApiService.saveMessage(
                     ChatMessageInsert(
                         sessionId = sessionId,
                         content = content,
@@ -172,7 +172,7 @@ class ChatRepository @Inject constructor(
      */
     fun sendMessageStream(sessionId: String, userMessage: String): Flow<StreamResponse> = flow {
         try {
-            val response = apiService.chatStream(
+            val response = chatApiService.chatStream(
                 ChatStreamRequest(
                     sessionId = sessionId,
                     userMessage = userMessage

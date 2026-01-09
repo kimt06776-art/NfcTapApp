@@ -2,7 +2,7 @@ package com.example.nfctapapp.ui.voice
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.VoiceCommandApiService
 import com.example.nfctapapp.data.remote.api.VoiceCommandAction
 import com.example.nfctapapp.data.remote.api.VoiceCommandAnalysis
 import com.example.nfctapapp.data.repository.VoiceCommandRepository
@@ -41,7 +41,7 @@ data class VoiceCommandUiState(
  */
 @HiltViewModel
 class VoiceCommandViewModel @Inject constructor(
-    private val apiService: ApiService
+    private val voiceCommandApiService: VoiceCommandApiService
 ) : ViewModel() {
 
     private var voiceCommandRepository: VoiceCommandRepository? = null
@@ -55,7 +55,7 @@ class VoiceCommandViewModel @Inject constructor(
      */
     fun initialize(userId: String?) {
         this.userId = userId
-        this.voiceCommandRepository = VoiceCommandRepository(apiService, userId)
+        this.voiceCommandRepository = VoiceCommandRepository(voiceCommandApiService, userId)
     }
 
     /**

@@ -100,9 +100,8 @@ fun BibleScreenNew(
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color(0xFF1E3A5F),
-                        Color(0xFF2D5478),
-                        Color(0xFF3D6E91)
+                        Color(0xFF7B7A77),  // Stone Gray
+                        Color(0xFF4F4E4B)   // Deep Stone
                     )
                 )
             )
@@ -124,7 +123,7 @@ fun BibleScreenNew(
                     text = if (isSearchBarVisible) "요한복음" else "요한복음 ${uiState.currentChapter}장",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color.White,
+                    color = Color(0xFFF5F4F2),  // Primary Text
                     modifier = Modifier.clickable(onClick = onBookSelectorClick)
                 )
 
@@ -136,7 +135,7 @@ fun BibleScreenNew(
                         Icon(
                             imageVector = Icons.Default.TextFields,
                             contentDescription = "글자 크기",
-                            tint = Color.White
+                            tint = Color(0xFFC1BFBB)  // Tertiary Text
                         )
                     }
                 }
@@ -147,7 +146,7 @@ fun BibleScreenNew(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "검색",
-                            tint = Color.White
+                            tint = Color(0xFFC1BFBB)  // Tertiary Text
                         )
                     }
                 }
@@ -157,7 +156,7 @@ fun BibleScreenNew(
             HorizontalDivider(
                 modifier = Modifier.padding(top = 4.dp),
                 thickness = 1.dp,
-                color = Color.White.copy(alpha = 0.2f)
+                color = Color(0xFF9A8F7A).copy(alpha = 0.3f)  // Hidden Warm
             )
 
             // 글자 크기 조절 다이얼로그
@@ -192,7 +191,7 @@ fun BibleScreenNew(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Color.White)
+                        CircularProgressIndicator(color = Color(0xFFF5F4F2))  // Primary Text
                     }
                 }
 
@@ -203,7 +202,7 @@ fun BibleScreenNew(
                     ) {
                         Text(
                             text = uiState.error ?: "오류가 발생했습니다",
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = Color(0xFFD8D6D2),  // Secondary Text
                             fontSize = 14.sp
                         )
                     }
@@ -257,7 +256,8 @@ private fun FontSizeDialog(
         title = {
             Text(
                 text = "글자 크기",
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFF5F4F2)  // Primary Text
             )
         },
         text = {
@@ -269,7 +269,7 @@ private fun FontSizeDialog(
                     text = "${sliderValue.toInt()}sp",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF1E3A5F)
+                    color = Color(0xFFF5F4F2)  // Primary Text
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -278,8 +278,13 @@ private fun FontSizeDialog(
                     value = sliderValue,
                     onValueChange = { sliderValue = it },
                     valueRange = 12f..30f,
-                    steps = 17, // 12부터 30까지 1씩 증가하므로 18-1=17 steps
-                    modifier = Modifier.fillMaxWidth()
+                    steps = 17,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = SliderDefaults.colors(
+                        thumbColor = Color(0xFF9A8F7A),  // Hidden Warm
+                        activeTrackColor = Color(0xFF9A8F7A),
+                        inactiveTrackColor = Color(0xFFC1BFBB).copy(alpha = 0.3f)
+                    )
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -288,8 +293,8 @@ private fun FontSizeDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = "12sp", fontSize = 12.sp, color = Color.Gray)
-                    Text(text = "30sp", fontSize = 12.sp, color = Color.Gray)
+                    Text(text = "12sp", fontSize = 12.sp, color = Color(0xFFC1BFBB))
+                    Text(text = "30sp", fontSize = 12.sp, color = Color(0xFFC1BFBB))
                 }
             }
         },
@@ -298,17 +303,17 @@ private fun FontSizeDialog(
                 onSizeSelected(sliderValue.toInt())
                 onDismiss()
             }) {
-                Text("확인")
+                Text("확인", color = Color(0xFFF5F4F2))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("취소")
+                Text("취소", color = Color(0xFFD8D6D2))
             }
         },
-        containerColor = Color.White,
-        textContentColor = Color.Black,
-        titleContentColor = Color.Black
+        containerColor = Color(0xFF4F4E4B),  // Deep Stone
+        textContentColor = Color(0xFFD8D6D2),
+        titleContentColor = Color(0xFFF5F4F2)
     )
 }
 
@@ -324,7 +329,7 @@ private fun SearchBar(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.15f)
+            containerColor = Color(0xFF4F4E4B).copy(alpha = 0.8f)  // Deep Stone
         )
     ) {
         Row(
@@ -336,7 +341,7 @@ private fun SearchBar(
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = null,
-                tint = Color.White,
+                tint = Color(0xFFC1BFBB),  // Tertiary Text
                 modifier = Modifier.size(20.dp)
             )
 
@@ -349,13 +354,13 @@ private fun SearchBar(
                 placeholder = {
                     Text(
                         text = "검색어를 입력하세요",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = Color(0xFFC1BFBB).copy(alpha = 0.7f),  // Tertiary Text
                         fontSize = 14.sp
                     )
                 },
                 colors = TextFieldDefaults.colors(
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White,
+                    focusedTextColor = Color(0xFFF5F4F2),  // Primary Text
+                    unfocusedTextColor = Color(0xFFF5F4F2),
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
                     focusedIndicatorColor = Color.Transparent,
@@ -371,7 +376,7 @@ private fun SearchBar(
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "검색 닫기",
-                        tint = Color.White,
+                        tint = Color(0xFFC1BFBB),  // Tertiary Text
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -392,7 +397,7 @@ private fun ChapterNavigation(
             .padding(horizontal = 16.dp, vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.15f)
+            containerColor = Color(0xFF4F4E4B).copy(alpha = 0.8f)  // Deep Stone
         )
     ) {
         Row(
@@ -409,7 +414,7 @@ private fun ChapterNavigation(
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowLeft,
                     contentDescription = "이전 장",
-                    tint = if (currentChapter > 1) Color.White else Color.White.copy(alpha = 0.3f)
+                    tint = if (currentChapter > 1) Color(0xFFF5F4F2) else Color(0xFFC1BFBB).copy(alpha = 0.3f)
                 )
             }
 
@@ -417,7 +422,7 @@ private fun ChapterNavigation(
                 text = "${currentChapter}장",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = Color(0xFFF5F4F2)  // Primary Text
             )
 
             IconButton(
@@ -427,7 +432,7 @@ private fun ChapterNavigation(
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowRight,
                     contentDescription = "다음 장",
-                    tint = if (currentChapter < 21) Color.White else Color.White.copy(alpha = 0.3f)
+                    tint = if (currentChapter < 21) Color(0xFFF5F4F2) else Color(0xFFC1BFBB).copy(alpha = 0.3f)
                 )
             }
         }
@@ -459,7 +464,7 @@ private fun ChapterSelector(
                             .size(32.dp)
                             .padding(2.dp)
                             .background(
-                                color = if (isSelected) Color.White else Color.Transparent,
+                                color = if (isSelected) Color(0xFF9A8F7A) else Color.Transparent,  // Hidden Warm
                                 shape = RoundedCornerShape(8.dp)
                             )
                             .clickable { onChapterSelected(chapter) },
@@ -469,7 +474,7 @@ private fun ChapterSelector(
                             text = chapter.toString(),
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color(0xFF1E3A5F) else Color.White.copy(alpha = 0.7f)
+                            color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2).copy(alpha = 0.7f)
                         )
                     }
                 }
@@ -558,7 +563,7 @@ private fun ChapterNavigationButtons(
         TextButton(
             onClick = onPreviousClick,
             colors = ButtonDefaults.textButtonColors(
-                contentColor = Color.White
+                contentColor = Color(0xFFD8D6D2)  // Secondary Text
             )
         ) {
             Icon(
@@ -578,7 +583,7 @@ private fun ChapterNavigationButtons(
         TextButton(
             onClick = onNextClick,
             colors = ButtonDefaults.textButtonColors(
-                contentColor = Color.White
+                contentColor = Color(0xFFD8D6D2)  // Secondary Text
             )
         ) {
             Text(
@@ -613,7 +618,7 @@ private fun SearchResults(
         item {
             Text(
                 text = "검색 결과: ${results.size}개",
-                color = Color.White.copy(alpha = 0.8f),
+                color = Color(0xFFD8D6D2),  // Secondary Text
                 fontSize = 14.sp,
                 modifier = Modifier.padding(vertical = 8.dp)
             )
@@ -643,7 +648,7 @@ private fun SearchResultItem(
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.95f)
+            containerColor = Color(0xFF4F4E4B)  // Deep Stone
         )
     ) {
         Column(
@@ -655,13 +660,13 @@ private fun SearchResultItem(
                 text = "${verse.chapter}장 ${verse.verse}절",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFF6B8ED6)
+                color = Color(0xFF9A8F7A)  // Hidden Warm
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = verse.text,
                 fontSize = 14.sp,
-                color = Color(0xFF1E3A5F),
+                color = Color(0xFFF5F4F2),  // Primary Text
                 lineHeight = 20.sp
             )
         }
@@ -684,7 +689,7 @@ private fun VerseItem(
                 if (isHighlighted) {
                     Modifier
                         .background(
-                            color = Color.White.copy(alpha = 0.2f),
+                            color = Color(0xFF9A8F7A).copy(alpha = 0.3f),  // Hidden Warm
                             shape = RoundedCornerShape(8.dp)
                         )
                         .padding(vertical = 8.dp, horizontal = 4.dp)
@@ -698,7 +703,7 @@ private fun VerseItem(
             text = "$verseNumber",
             fontSize = verseNumberSize.sp,
             fontWeight = FontWeight.Bold,
-            color = if (isHighlighted) Color.White else Color(0xFF6B8ED6),
+            color = if (isHighlighted) Color(0xFFF5F4F2) else Color(0xFF9A8F7A),  // Hidden Warm
             modifier = Modifier
                 .width((verseNumberSize * 2.3).dp)
                 .padding(top = 2.dp),
@@ -710,7 +715,7 @@ private fun VerseItem(
         Text(
             text = text,
             fontSize = textFontSize.sp,
-            color = Color.White,
+            color = Color(0xFFF5F4F2),  // Primary Text
             lineHeight = lineHeight.sp,
             modifier = Modifier.weight(1f)
         )

@@ -5,30 +5,10 @@ import retrofit2.Response
 import retrofit2.http.*
 
 /**
- * Backend API Service Interface
- *
- * JavaScript의 api.js와 동일한 역할
+ * Chat API Service
+ * AI 채팅 세션 및 메시지 관리
  */
-interface ApiService {
-
-    // ==================== Auth API ====================
-
-    @POST("/api/auth/nfc")
-    suspend fun authenticateWithNfc(
-        @Body request: NfcAuthRequest
-    ): Response<AuthResponse>
-
-    @POST("/api/auth/register")
-    suspend fun registerUser(
-        @Body request: UserRegisterRequest
-    ): Response<AuthResponse>
-
-    @POST("/api/auth/validate")
-    suspend fun validateUser(
-        @Body request: UserValidateRequest
-    ): Response<AuthResponse>
-
-    // ==================== Chat API ====================
+interface ChatApiService {
 
     /**
      * Chat streaming endpoint
@@ -70,24 +50,4 @@ interface ApiService {
     suspend fun saveMessage(
         @Body request: ChatMessageInsert
     ): Response<MessageCreateResponse>
-
-    // ==================== Sermon API ====================
-
-    @GET("/api/sermons")
-    suspend fun getAllSermons(): Response<SermonListResponse>
-
-    @GET("/api/sermons/latest")
-    suspend fun getLatestSermon(): Response<SermonDetailResponse>
-
-    @GET("/api/sermons/{sermonId}")
-    suspend fun getSermonById(
-        @Path("sermonId") sermonId: String
-    ): Response<SermonDetailResponse>
-
-    // ==================== Voice Command API ====================
-
-    @POST("/api/voice-command")
-    suspend fun analyzeVoiceCommand(
-        @Body request: VoiceCommandRequest
-    ): Response<VoiceCommandResponse>
 }

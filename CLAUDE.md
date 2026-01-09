@@ -264,8 +264,29 @@ sdk.dir=C:\\Users\\...\\Android\\Sdk
 - Backend: ERROR/WARNING만 출력 (INFO/DEBUG 비활성화)
 - httpcore, httpx, openai, uvicorn.access 로그 최소화
 
+## 디자인 시스템
+
+### 색상 가이드
+**UI 색상 결정 시 반드시 `colors.md` 파일을 참고할 것.**
+
+핵심 원칙:
+- 색상은 감정을 자극하지 않고 **공간을 만든다**
+- 순백색(`#FFFFFF`) 사용 금지 → `#F5F4F2` 사용
+- 고채도 색상, 감정적 색상 금지
+
+주요 색상:
+| 용도 | 색상명 | Hex |
+|------|--------|-----|
+| 배경 | Stone Gray | `#7B7A77` |
+| 깊이/하단 | Deep Stone | `#4F4E4B` |
+| 미세 악센트 | Hidden Warm | `#9A8F7A` |
+| 주 텍스트 | Primary Text | `#F5F4F2` |
+| 보조 텍스트 | Secondary Text | `#D8D6D2` |
+| UI 텍스트 | Tertiary Text | `#C1BFBB` |
+
 ## 참고 문서
 
+- **Color System**: `colors.md` (필수 참고)
 - **Android NFC Guide**: https://developer.android.com/guide/topics/connectivity/nfc
 - **Jetpack Compose**: https://developer.android.com/jetpack/compose
 - **FastAPI**: https://fastapi.tiangolo.com/

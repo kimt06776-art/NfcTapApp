@@ -1,6 +1,6 @@
 package com.example.nfctapapp.data.repository
 
-import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.VoiceCommandApiService
 import com.example.nfctapapp.data.remote.api.VoiceCommandAnalysis
 import com.example.nfctapapp.data.remote.api.VoiceCommandRequest
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +15,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class VoiceCommandRepository @Inject constructor(
-    private val apiService: ApiService,
+    private val voiceCommandApiService: VoiceCommandApiService,
     private val userId: String?
 ) {
 
@@ -28,7 +28,7 @@ class VoiceCommandRepository @Inject constructor(
     suspend fun analyzeCommand(text: String): Result<VoiceCommandAnalysis> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.analyzeVoiceCommand(
+                val response = voiceCommandApiService.analyzeVoiceCommand(
                     VoiceCommandRequest(text = text, userId = userId)
                 )
 

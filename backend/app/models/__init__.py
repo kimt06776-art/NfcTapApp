@@ -59,6 +59,16 @@ from app.models.voice_command import (
     VoiceCommandResponse
 )
 
+# Sermon Note models
+from app.models.sermon_note import (
+    SermonNoteDto,
+    SermonNoteCreateRequest,
+    SermonNoteUpdateRequest,
+    SermonNoteListResponse,
+    SermonNoteResponse,
+    SermonNoteDeleteResponse
+)
+
 __all__ = [
     # User
     "UserDto",
@@ -94,4 +104,11 @@ __all__ = [
     "VoiceCommandRequest",
     "VoiceCommandAnalysis",
     "VoiceCommandResponse",
+    # Sermon Note
+    "SermonNoteDto",
+    "SermonNoteCreateRequest",
+    "SermonNoteUpdateRequest",
+    "SermonNoteListResponse",
+    "SermonNoteResponse",
+    "SermonNoteDeleteResponse",
 ]

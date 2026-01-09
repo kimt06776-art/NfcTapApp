@@ -1,7 +1,7 @@
 package com.example.nfctapapp.data.repository
 
 import com.example.nfctapapp.data.local.UserPreferences
-import com.example.nfctapapp.data.remote.api.ApiService
+import com.example.nfctapapp.data.remote.api.AuthApiService
 import com.example.nfctapapp.data.remote.api.NfcAuthRequest
 import com.example.nfctapapp.data.remote.api.UserRegisterRequest
 import com.example.nfctapapp.data.remote.api.UserValidateRequest
@@ -22,7 +22,7 @@ import javax.inject.Singleton
  */
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
-    private val apiService: ApiService,
+    private val authApiService: AuthApiService,
     private val userPreferences: UserPreferences,
     private val deviceUtils: DeviceUtils
 ) : AuthRepository {
@@ -40,7 +40,7 @@ class AuthRepositoryImpl @Inject constructor(
         // 2. 서버에서 사용자 존재 여부 확인
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.validateUser(
+                val response = authApiService.validateUser(
                     UserValidateRequest(
                         userId = cachedUser.id,
                         nfcUid = cachedNfcUid,
@@ -83,7 +83,7 @@ class AuthRepositoryImpl @Inject constructor(
         // 1. 서버에서 먼저 조회 (서버 우선)
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.authenticateWithNfc(
+                val response = authApiService.authenticateWithNfc(
                     NfcAuthRequest(
                         nfcUid = nfcUid,
                         deviceId = deviceId
@@ -132,7 +132,7 @@ class AuthRepositoryImpl @Inject constructor(
 
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.registerUser(
+                val response = authApiService.registerUser(
                     UserRegisterRequest(
                         name = name,
                         phone = phone,
