@@ -7,31 +7,58 @@ These tools allow the agent to search and retrieve Bible verses.
 from langchain_core.tools import tool
 from typing import Optional
 import logging
+import json
+import os
 
 logger = logging.getLogger(__name__)
 
-# 요한복음 데이터 (현재 지원하는 책)
-# TODO: 실제 DB에서 가져오도록 변경
-JOHN_SAMPLE_VERSES = {
-    "3:16": "하나님이 세상을 이처럼 사랑하사 독생자를 주셨으니 이는 그를 믿는 자마다 멸망하지 않고 영생을 얻게 하려 하심이라",
-    "14:6": "예수께서 이르시되 내가 곧 길이요 진리요 생명이니 나로 말미암지 않고는 아버지께로 올 자가 없느니라",
-    "1:1": "태초에 말씀이 계시니라 이 말씀이 하나님과 함께 계셨으니 이 말씀은 곧 하나님이시니라",
-    "11:35": "예수께서 눈물을 흘리시더라",
-    "15:13": "사람이 친구를 위하여 자기 목숨을 버리면 이보다 더 큰 사랑이 없나니",
-}
+# 성경 데이터 로드
+_bible_data = None
 
-# 키워드 기반 검색 인덱스
-KEYWORD_INDEX = {
-    "사랑": ["3:16", "15:13"],
-    "생명": ["3:16", "14:6"],
-    "진리": ["14:6"],
-    "말씀": ["1:1"],
-    "눈물": ["11:35"],
-    "친구": ["15:13"],
-    "길": ["14:6"],
-    "하나님": ["1:1", "3:16"],
-    "영생": ["3:16"],
-}
+
+def _load_bible_data():
+    """Load Bible data from JSON file."""
+    global _bible_data
+    if _bible_data is not None:
+        return _bible_data
+
+    try:
+        data_path = os.path.join(os.path.dirname(__file__), "..", "data", "john.json")
+        with open(data_path, "r", encoding="utf-8") as f:
+            _bible_data = json.load(f)
+        logger.info(f"Loaded Bible data: {_bible_data['name']}, {_bible_data['totalChapters']} chapters")
+    except Exception as e:
+        logger.error(f"Failed to load Bible data: {e}")
+        _bible_data = {"name": "요한복음", "chapters": []}
+
+    return _bible_data
+
+
+def _get_verse_text(chapter: int, verse: int) -> Optional[str]:
+    """Get a specific verse text."""
+    data = _load_bible_data()
+
+    if chapter < 1 or chapter > len(data.get("chapters", [])):
+        return None
+
+    chapter_data = data["chapters"][chapter - 1]
+    verses = chapter_data.get("verses", [])
+
+    if verse < 1 or verse > len(verses):
+        return None
+
+    return verses[verse - 1].get("text")
+
+
+def _get_chapter_verses(chapter: int) -> list:
+    """Get all verses in a chapter."""
+    data = _load_bible_data()
+
+    if chapter < 1 or chapter > len(data.get("chapters", [])):
+        return []
+
+    chapter_data = data["chapters"][chapter - 1]
+    return chapter_data.get("verses", [])
 
 
 @tool
@@ -46,26 +73,24 @@ def bible_search(keyword: str) -> str:
     """
     logger.info(f"Bible search called with keyword: {keyword}")
 
+    data = _load_bible_data()
     results = []
 
-    # 키워드 인덱스에서 검색
-    for key, verses in KEYWORD_INDEX.items():
-        if keyword in key or key in keyword:
-            for verse_ref in verses:
-                verse_text = JOHN_SAMPLE_VERSES.get(verse_ref, "")
-                if verse_text:
-                    results.append(f"요한복음 {verse_ref} - {verse_text}")
-
-    # 직접 텍스트 검색
-    if not results:
-        for verse_ref, verse_text in JOHN_SAMPLE_VERSES.items():
-            if keyword in verse_text:
-                results.append(f"요한복음 {verse_ref} - {verse_text}")
+    for chapter_data in data.get("chapters", []):
+        for verse_data in chapter_data.get("verses", []):
+            if keyword in verse_data.get("text", ""):
+                chapter = verse_data.get("chapter")
+                verse = verse_data.get("verse")
+                text = verse_data.get("text")
+                results.append(f"요한복음 {chapter}:{verse} - {text}")
 
     if results:
+        # 최대 5개만 반환
+        if len(results) > 5:
+            return "\n\n".join(results[:5]) + f"\n\n... 외 {len(results) - 5}개 구절"
         return "\n\n".join(results)
     else:
-        return f"'{keyword}'에 대한 검색 결과가 없습니다. 현재는 요한복음만 검색 가능합니다."
+        return f"'{keyword}'에 대한 검색 결과가 없습니다."
 
 
 @tool
@@ -85,21 +110,28 @@ def get_verse(book: str, chapter: int, verse: Optional[int] = None) -> str:
     if book != "요한복음":
         return f"{book}은(는) 아직 지원하지 않습니다. 현재는 요한복음만 조회 가능합니다."
 
+    data = _load_bible_data()
+    total_chapters = data.get("totalChapters", 21)
+
+    if chapter < 1 or chapter > total_chapters:
+        return f"요한복음은 {total_chapters}장까지 있습니다. (요청: {chapter}장)"
+
     if verse:
-        verse_ref = f"{chapter}:{verse}"
-        verse_text = JOHN_SAMPLE_VERSES.get(verse_ref)
+        verse_text = _get_verse_text(chapter, verse)
         if verse_text:
-            return f"요한복음 {verse_ref}\n{verse_text}"
+            return f"요한복음 {chapter}장 {verse}절\n\n{verse_text}"
         else:
-            return f"요한복음 {verse_ref} 구절을 찾을 수 없습니다."
+            chapter_verses = _get_chapter_verses(chapter)
+            max_verse = len(chapter_verses)
+            return f"요한복음 {chapter}장은 {max_verse}절까지 있습니다. (요청: {verse}절)"
     else:
         # 해당 장의 모든 구절 반환
-        chapter_verses = []
-        for verse_ref, verse_text in JOHN_SAMPLE_VERSES.items():
-            if verse_ref.startswith(f"{chapter}:"):
-                chapter_verses.append(f"{verse_ref} {verse_text}")
-
+        chapter_verses = _get_chapter_verses(chapter)
         if chapter_verses:
-            return f"요한복음 {chapter}장\n" + "\n".join(chapter_verses)
+            verses_text = "\n".join([
+                f"{v.get('verse')}절 {v.get('text')}"
+                for v in chapter_verses
+            ])
+            return f"요한복음 {chapter}장\n\n{verses_text}"
         else:
             return f"요한복음 {chapter}장 데이터가 없습니다."
