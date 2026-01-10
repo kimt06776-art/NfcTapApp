@@ -13,6 +13,7 @@ class IntentType(str, Enum):
     """Types of user intent for chat routing."""
     BIBLE_STUDY = "bible_study"      # 성경 공부, 해석, 의미 질문
     BIBLE_READING = "bible_reading"  # 성경 구절 찾기/읽기 요청
+    SERMON_NOTE = "sermon_note"      # 설교 노트 열기 요청
     COUNSELING = "counseling"        # 위로, 상담, 고민 상담
     PRAYER = "prayer"                # 기도 요청, 기도문 작성
     GENERAL = "general"              # 일반 대화, 인사, 기타

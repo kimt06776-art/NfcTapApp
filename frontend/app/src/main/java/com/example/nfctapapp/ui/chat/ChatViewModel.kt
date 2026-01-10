@@ -52,6 +52,7 @@ data class ChatUiState(
     val streamingContent: String = "",
     val currentIntent: String? = null,   // 현재 분류된 intent
     val bibleNavigationEvent: BibleNavigationEvent? = null, // 성경 네비게이션 이벤트
+    val sermonNoteNavigationEvent: Boolean = false, // 설교 노트 네비게이션 이벤트
     val error: String? = null
 )
 
@@ -170,7 +171,16 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
-            // 3. 다른 intent는 세션 생성 및 메시지 추가 후 처리
+            // 3. sermon_note이면 채팅에 메시지 추가 없이 바로 설교 노트 화면으로 이동
+            if (intent == "sermon_note") {
+                android.util.Log.d("ChatViewModel", "Navigating to sermon note")
+                _uiState.value = _uiState.value.copy(
+                    sermonNoteNavigationEvent = true
+                )
+                return@launch
+            }
+
+            // 4. 다른 intent는 세션 생성 및 메시지 추가 후 처리
             var sessionId = _uiState.value.currentSessionId
             if (sessionId == null) {
                 val sessionResult = repo.createSession()
@@ -258,6 +268,13 @@ class ChatViewModel @Inject constructor(
      */
     fun consumeBibleNavigationEvent() {
         _uiState.value = _uiState.value.copy(bibleNavigationEvent = null)
+    }
+
+    /**
+     * 설교 노트 네비게이션 이벤트 소비 (네비게이션 후 호출)
+     */
+    fun consumeSermonNoteNavigationEvent() {
+        _uiState.value = _uiState.value.copy(sermonNoteNavigationEvent = false)
     }
 
     /**

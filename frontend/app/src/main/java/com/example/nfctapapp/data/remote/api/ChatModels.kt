@@ -78,6 +78,7 @@ data class MessageCreateResponse(
 enum class IntentType {
     @Json(name = "bible_study") BIBLE_STUDY,
     @Json(name = "bible_reading") BIBLE_READING,
+    @Json(name = "sermon_note") SERMON_NOTE,
     @Json(name = "counseling") COUNSELING,
     @Json(name = "prayer") PRAYER,
     @Json(name = "general") GENERAL
