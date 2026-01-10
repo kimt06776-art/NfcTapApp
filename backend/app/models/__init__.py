@@ -69,6 +69,15 @@ from app.models.sermon_note import (
     SermonNoteDeleteResponse
 )
 
+# Intent models
+from app.models.intent import (
+    IntentType,
+    IntentClassification,
+    BibleStudyResponse,
+    BibleReadingResponse,
+    ChatRouterResponse
+)
+
 __all__ = [
     # User
     "UserDto",
@@ -111,4 +120,10 @@ __all__ = [
     "SermonNoteListResponse",
     "SermonNoteResponse",
     "SermonNoteDeleteResponse",
+    # Intent
+    "IntentType",
+    "IntentClassification",
+    "BibleStudyResponse",
+    "BibleReadingResponse",
+    "ChatRouterResponse",
 ]

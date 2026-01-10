@@ -3,10 +3,12 @@ FastAPI router for chat operations.
 
 Includes:
 - Chat streaming with OpenAI
+- Intent-based routing (Bible Study, Counseling, Prayer, General)
 - Session CRUD operations
 - Message CRUD operations
 """
 
+import json
 import logging
 from typing import AsyncGenerator
 from fastapi import APIRouter, HTTPException, Query
@@ -21,14 +23,248 @@ from app.models import (
     MessageCreateResponse,
     ChatSessionDto,
     ChatMessageDto,
-    ChatMessageInsert
+    ChatMessageInsert,
+    IntentType,
+    IntentClassification,
+    BibleStudyResponse,
+    BibleReadingResponse
 )
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import SystemMessage, HumanMessage
+from app.config import settings
 from app.services.openai_service import openai_service
+from app.services.intent_router_service import intent_router_service
+from app.services.bible_study_service import bible_study_service
 from app.repositories.chat_repository import chat_repository
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# ==================== Intent Classification ====================
+
+@router.post("/chat/classify")
+async def classify_intent(request: ChatStreamRequest):
+    """
+    Classify user message intent.
+
+    Returns the intent type so frontend can decide how to handle the response.
+
+    Args:
+        request: ChatStreamRequest with userMessage
+
+    Returns:
+        IntentClassification with intent, confidence, and reasoning
+    """
+    try:
+        classification = await intent_router_service.classify_intent(request.user_message)
+
+        return {
+            "success": True,
+            "classification": {
+                "intent": classification.intent.value,
+                "confidence": classification.confidence,
+                "reasoning": classification.reasoning
+            }
+        }
+
+    except Exception as e:
+        logger.error(f"Intent classification failed: {str(e)}", exc_info=True)
+        return {
+            "success": False,
+            "error": str(e),
+            "classification": {
+                "intent": IntentType.GENERAL.value,
+                "confidence": 0.5,
+                "reasoning": "분류 실패"
+            }
+        }
+
+
+# ==================== Bible Study (Structured Response) ====================
+
+@router.post("/chat/bible-study")
+async def bible_study(request: ChatStreamRequest):
+    """
+    Generate structured Bible study response.
+
+    Used when intent is classified as 'bible_study'.
+
+    Args:
+        request: ChatStreamRequest with sessionId and userMessage
+
+    Returns:
+        Structured BibleStudyResponse
+    """
+    try:
+        # Get conversation history
+        messages = await chat_repository.get_messages(request.session_id)
+        conversation_history = [
+            {"role": "user" if msg.is_from_user else "assistant", "content": msg.content}
+            for msg in messages
+        ]
+
+        # Save user message
+        await chat_repository.save_message(
+            session_id=request.session_id,
+            content=request.user_message,
+            is_from_user=True
+        )
+
+        # Generate Bible study response
+        response = await bible_study_service.generate_study(
+            user_message=request.user_message,
+            conversation_history=conversation_history
+        )
+
+        # Save AI response as JSON string for history
+        response_json = json.dumps(response.model_dump(), ensure_ascii=False)
+        await chat_repository.save_message(
+            session_id=request.session_id,
+            content=response_json,
+            is_from_user=False
+        )
+
+        return {
+            "success": True,
+            "response_type": "structured",
+            "intent": IntentType.BIBLE_STUDY.value,
+            "data": response.model_dump()
+        }
+
+    except Exception as e:
+        logger.error(f"Bible study failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Bible Reading (Navigation) ====================
+
+# LLM for parsing Bible references
+_bible_parser_llm = None
+
+def get_bible_parser():
+    global _bible_parser_llm
+    if _bible_parser_llm is None:
+        llm = ChatOpenAI(
+            model="gpt-4o-mini",
+            openai_api_key=settings.OPENAI_API_KEY,
+            temperature=0.0,
+            max_tokens=200
+        )
+        _bible_parser_llm = llm.with_structured_output(BibleReadingResponse)
+    return _bible_parser_llm
+
+BIBLE_PARSER_PROMPT = """사용자 메시지에서 성경 책 이름, 장, 절 정보를 추출하세요.
+
+규칙:
+- book: 성경책 이름 (예: "요한복음", "창세기", "마태복음")
+- chapter: 장 번호 (숫자)
+- verse: 절 번호 (없으면 null)
+- verse_end: 끝 절 번호 (범위 지정 시, 예: 1-5절이면 verse=1, verse_end=5)
+
+예시:
+- "요한복음 14장 찾아줘" → book="요한복음", chapter=14, verse=null
+- "창세기 1장 1절" → book="창세기", chapter=1, verse=1
+- "로마서 8장 28-30절" → book="로마서", chapter=8, verse=28, verse_end=30
+- "요한복음 3:16" → book="요한복음", chapter=3, verse=16"""
+
+
+@router.post("/chat/bible-reading")
+async def bible_reading(request: ChatStreamRequest):
+    """
+    Parse Bible reference and return navigation info.
+
+    Used when intent is classified as 'bible_reading'.
+
+    Args:
+        request: ChatStreamRequest with userMessage containing Bible reference
+
+    Returns:
+        BibleReadingResponse with book, chapter, verse info
+    """
+    try:
+        parser = get_bible_parser()
+        messages = [
+            SystemMessage(content=BIBLE_PARSER_PROMPT),
+            HumanMessage(content=request.user_message)
+        ]
+
+        result = await parser.ainvoke(messages)
+        logger.info(f"Bible reading parsed: {result.book} {result.chapter}:{result.verse}")
+
+        return {
+            "success": True,
+            "response_type": "navigation",
+            "intent": IntentType.BIBLE_READING.value,
+            "data": result.model_dump()
+        }
+
+    except Exception as e:
+        logger.error(f"Bible reading parse failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Smart Chat (Auto-routing) ====================
+
+@router.post("/chat/smart")
+async def smart_chat(request: ChatStreamRequest):
+    """
+    Smart chat endpoint that auto-routes based on intent.
+
+    - bible_study: Returns structured JSON response
+    - others: Returns streaming SSE response
+
+    Note: For streaming responses, use /chat/stream after checking intent via /chat/classify
+    """
+    try:
+        # Classify intent
+        classification = await intent_router_service.classify_intent(request.user_message)
+
+        if classification.intent == IntentType.BIBLE_STUDY:
+            # Return structured response
+            messages = await chat_repository.get_messages(request.session_id)
+            conversation_history = [
+                {"role": "user" if msg.is_from_user else "assistant", "content": msg.content}
+                for msg in messages
+            ]
+
+            await chat_repository.save_message(
+                session_id=request.session_id,
+                content=request.user_message,
+                is_from_user=True
+            )
+
+            response = await bible_study_service.generate_study(
+                user_message=request.user_message,
+                conversation_history=conversation_history
+            )
+
+            response_json = json.dumps(response.model_dump(), ensure_ascii=False)
+            await chat_repository.save_message(
+                session_id=request.session_id,
+                content=response_json,
+                is_from_user=False
+            )
+
+            return {
+                "success": True,
+                "response_type": "structured",
+                "intent": classification.intent.value,
+                "data": response.model_dump()
+            }
+        else:
+            # For streaming, return intent info and let frontend call /chat/stream
+            return {
+                "success": True,
+                "response_type": "stream",
+                "intent": classification.intent.value,
+                "message": "Use /chat/stream endpoint for streaming response"
+            }
+
+    except Exception as e:
+        logger.error(f"Smart chat failed: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ==================== Chat Streaming ====================
