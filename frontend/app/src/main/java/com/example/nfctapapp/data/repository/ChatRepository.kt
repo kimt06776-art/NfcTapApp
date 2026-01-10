@@ -1,10 +1,13 @@
 package com.example.nfctapapp.data.repository
 
+import com.example.nfctapapp.data.remote.api.BibleReadingData
+import com.example.nfctapapp.data.remote.api.BibleStudyData
 import com.example.nfctapapp.data.remote.api.ChatApiService
 import com.example.nfctapapp.data.remote.api.ChatMessageDto
 import com.example.nfctapapp.data.remote.api.ChatMessageInsert
 import com.example.nfctapapp.data.remote.api.ChatSessionDto
 import com.example.nfctapapp.data.remote.api.ChatStreamRequest
+import com.example.nfctapapp.data.remote.api.IntentClassificationDto
 import com.example.nfctapapp.data.remote.api.SessionCreateRequest
 import com.example.nfctapapp.data.remote.api.SessionUpdateRequest
 import kotlinx.coroutines.Dispatchers
@@ -153,6 +156,100 @@ class ChatRepository @Inject constructor(
                         Result.success(body.message)
                     } else {
                         Result.failure(Exception(body?.error ?: "메시지 저장 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    // ==================== Intent Classification ====================
+
+    /**
+     * 사용자 메시지 의도 분류
+     * bible_study, counseling, prayer, general 중 하나 반환
+     */
+    suspend fun classifyIntent(userMessage: String): Result<IntentClassificationDto> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = chatApiService.classifyIntent(
+                    ChatStreamRequest(sessionId = "", userMessage = userMessage)
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true && body.classification != null) {
+                        Result.success(body.classification)
+                    } else {
+                        Result.failure(Exception(body?.error ?: "의도 분류 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * 성경 공부 응답 요청
+     * Structured output으로 정형화된 응답 반환
+     */
+    suspend fun getBibleStudy(sessionId: String, userMessage: String): Result<BibleStudyData> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = chatApiService.bibleStudy(
+                    ChatStreamRequest(sessionId = sessionId, userMessage = userMessage)
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true && body.data != null) {
+                        Result.success(body.data)
+                    } else {
+                        Result.failure(Exception("성경 공부 응답 실패"))
+                    }
+                } else {
+                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
+                }
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * 성경 읽기 요청 파싱
+     * 책/장/절 정보를 추출하여 네비게이션에 사용
+     */
+    suspend fun getBibleReading(userMessage: String): Result<BibleReadingData> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = chatApiService.bibleReading(
+                    ChatStreamRequest(sessionId = "", userMessage = userMessage)
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body?.success == true && body.data != null) {
+                        // 지원되는 성경책인지 확인
+                        if (body.data.isSupported && body.data.chapter != null) {
+                            Result.success(body.data)
+                        } else {
+                            // 지원되지 않는 책이거나 chapter가 없는 경우
+                            val errorMsg = body.data.errorMessage
+                                ?: body.error
+                                ?: "${body.data.book}은(는) 현재 지원하지 않는 성경책입니다"
+                            Result.failure(Exception(errorMsg))
+                        }
+                    } else {
+                        // success가 false인 경우
+                        val errorMsg = body?.error ?: "성경 구절 파싱 실패"
+                        Result.failure(Exception(errorMsg))
                     }
                 } else {
                     Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))

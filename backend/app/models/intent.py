@@ -59,8 +59,9 @@ class BibleReadingResponse(BaseModel):
     book: str = Field(
         description="성경책 이름 (예: 요한복음, 창세기)"
     )
-    chapter: int = Field(
-        description="장 번호"
+    chapter: Optional[int] = Field(
+        default=None,
+        description="장 번호 (파싱 실패 시 None)"
     )
     verse: Optional[int] = Field(
         default=None,
@@ -69,6 +70,14 @@ class BibleReadingResponse(BaseModel):
     verse_end: Optional[int] = Field(
         default=None,
         description="끝 절 번호 (범위 지정 시)"
+    )
+    is_supported: bool = Field(
+        default=True,
+        description="지원되는 성경책인지 여부"
+    )
+    error_message: Optional[str] = Field(
+        default=None,
+        description="오류 메시지 (지원 안 되는 경우)"
     )
 
 

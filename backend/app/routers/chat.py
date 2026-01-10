@@ -159,15 +159,22 @@ BIBLE_PARSER_PROMPT = """사용자 메시지에서 성경 책 이름, 장, 절 �
 
 규칙:
 - book: 성경책 이름 (예: "요한복음", "창세기", "마태복음")
-- chapter: 장 번호 (숫자)
+- chapter: 장 번호 (숫자). 장 번호가 명시되지 않으면 1
 - verse: 절 번호 (없으면 null)
 - verse_end: 끝 절 번호 (범위 지정 시, 예: 1-5절이면 verse=1, verse_end=5)
+- is_supported: 정경 성경책이면 true, 외경/위경이면 false
+- error_message: 지원하지 않는 책이면 이유 설명
+
+정경 성경 66권만 지원합니다:
+- 구약: 창세기, 출애굽기, 레위기, 민수기, 신명기, 여호수아, 사사기, 룻기, 사무엘상, 사무엘하, 열왕기상, 열왕기하, 역대상, 역대하, 에스라, 느헤미야, 에스더, 욥기, 시편, 잠언, 전도서, 아가, 이사야, 예레미야, 예레미야애가, 에스겔, 다니엘, 호세아, 요엘, 아모스, 오바댜, 요나, 미가, 나훔, 하박국, 스바냐, 학개, 스가랴, 말라기
+- 신약: 마태복음, 마가복음, 누가복음, 요한복음, 사도행전, 로마서, 고린도전서, 고린도후서, 갈라디아서, 에베소서, 빌립보서, 골로새서, 데살로니가전서, 데살로니가후서, 디모데전서, 디모데후서, 디도서, 빌레몬서, 히브리서, 야고보서, 베드로전서, 베드로후서, 요한일서, 요한이서, 요한삼서, 유다서, 요한계시록
+
+지원하지 않는 책 예시: 에녹서, 토비트, 유딧, 마카비서, 집회서, 지혜서 등 (외경/위경)
 
 예시:
-- "요한복음 14장 찾아줘" → book="요한복음", chapter=14, verse=null
-- "창세기 1장 1절" → book="창세기", chapter=1, verse=1
-- "로마서 8장 28-30절" → book="로마서", chapter=8, verse=28, verse_end=30
-- "요한복음 3:16" → book="요한복음", chapter=3, verse=16"""
+- "요한복음 14장 찾아줘" → book="요한복음", chapter=14, verse=null, is_supported=true
+- "에녹서 찾아줘" → book="에녹서", chapter=null, verse=null, is_supported=false, error_message="에녹서는 외경으로 현재 지원하지 않습니다"
+- "창세기 찾아줘" → book="창세기", chapter=1, verse=null, is_supported=true"""
 
 
 @router.post("/chat/bible-reading")
@@ -191,7 +198,27 @@ async def bible_reading(request: ChatStreamRequest):
         ]
 
         result = await parser.ainvoke(messages)
-        logger.info(f"Bible reading parsed: {result.book} {result.chapter}:{result.verse}")
+        logger.info(f"Bible reading parsed: {result.book} {result.chapter}:{result.verse} (supported: {result.is_supported})")
+
+        # 지원하지 않는 책인 경우
+        if not result.is_supported:
+            return {
+                "success": False,
+                "response_type": "navigation",
+                "intent": IntentType.BIBLE_READING.value,
+                "error": result.error_message or f"{result.book}은(는) 현재 지원하지 않는 성경책입니다",
+                "data": result.model_dump()
+            }
+
+        # chapter가 없는 경우 (파싱 실패)
+        if result.chapter is None:
+            return {
+                "success": False,
+                "response_type": "navigation",
+                "intent": IntentType.BIBLE_READING.value,
+                "error": "성경 구절을 파싱할 수 없습니다. 책 이름과 장 번호를 명확히 말씀해주세요.",
+                "data": result.model_dump()
+            }
 
         return {
             "success": True,
@@ -202,7 +229,14 @@ async def bible_reading(request: ChatStreamRequest):
 
     except Exception as e:
         logger.error(f"Bible reading parse failed: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        # 예외 발생 시에도 crash 대신 에러 응답 반환
+        return {
+            "success": False,
+            "response_type": "navigation",
+            "intent": IntentType.BIBLE_READING.value,
+            "error": "성경 구절 파싱 중 오류가 발생했습니다. 다시 시도해주세요.",
+            "data": None
+        }
 
 
 # ==================== Smart Chat (Auto-routing) ====================
