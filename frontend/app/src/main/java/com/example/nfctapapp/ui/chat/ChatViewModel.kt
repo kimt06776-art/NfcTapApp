@@ -2,10 +2,9 @@ package com.example.nfctapapp.ui.chat
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.nfctapapp.data.remote.api.BibleReadingData
-import com.example.nfctapapp.data.remote.api.BibleStudyData
 import com.example.nfctapapp.data.remote.api.ChatApiService
 import com.example.nfctapapp.data.remote.api.ChatSessionDto
+import com.example.nfctapapp.data.remote.api.NavigationInfo
 import com.example.nfctapapp.data.repository.ChatRepository
 import com.example.nfctapapp.data.repository.StreamResponse
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,8 +18,7 @@ import javax.inject.Inject
  * 메시지 유형
  */
 enum class MessageType {
-    TEXT,           // 일반 텍스트 메시지
-    BIBLE_STUDY     // 구조화된 성경 공부 응답
+    TEXT  // 모든 메시지는 텍스트 (Agent가 자동으로 처리)
 }
 
 data class ChatMessage(
@@ -28,17 +26,15 @@ data class ChatMessage(
     val content: String,
     val isFromUser: Boolean,
     val timestamp: Long = System.currentTimeMillis(),
-    val type: MessageType = MessageType.TEXT,
-    val bibleStudyData: BibleStudyData? = null
+    val type: MessageType = MessageType.TEXT
 )
 
 /**
- * 성경 네비게이션 이벤트
+ * 네비게이션 이벤트 (Agent가 반환)
  */
-data class BibleNavigationEvent(
-    val book: String,
-    val chapter: Int,
-    val verse: Int? = null
+data class NavigationEvent(
+    val screen: String,
+    val params: Map<String, String>?
 )
 
 data class ChatUiState(
@@ -47,12 +43,10 @@ data class ChatUiState(
     val currentSessionId: String? = null,
     val isLoading: Boolean = false,
     val isLoadingSessions: Boolean = false,
-    val isClassifying: Boolean = false,  // Intent 분류 중
     val isStreaming: Boolean = false,
     val streamingContent: String = "",
-    val currentIntent: String? = null,   // 현재 분류된 intent
-    val bibleNavigationEvent: BibleNavigationEvent? = null, // 성경 네비게이션 이벤트
-    val sermonNoteNavigationEvent: Boolean = false, // 설교 노트 네비게이션 이벤트
+    val navigationEvent: NavigationEvent? = null, // Agent 네비게이션 이벤트
+    val toolsUsed: List<String> = emptyList(), // 사용된 도구 목록
     val error: String? = null
 )
 
@@ -134,53 +128,26 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * 메시지 전송 (Agent 기반)
+     *
+     * Agent가 자동으로:
+     * - 의도 파악 및 적절한 도구 사용
+     * - 네비게이션 결정 (성경, 설교노트 등)
+     * - 응답 생성
+     */
     fun sendMessage(content: String) {
         if (content.isBlank()) return
         val repo = chatRepository ?: return
 
         android.util.Log.d("ChatViewModel", "sendMessage called: $content")
         viewModelScope.launch {
-            // 1. 먼저 Intent 분류 (메시지 추가 전에)
             _uiState.value = _uiState.value.copy(
-                isClassifying = true,
+                isLoading = true,
                 error = null
             )
 
-            android.util.Log.d("ChatViewModel", "Classifying intent...")
-            val intentResult = repo.classifyIntent(content)
-
-            val intent = intentResult.fold(
-                onSuccess = { classification ->
-                    android.util.Log.d("ChatViewModel", "Intent: ${classification.intent} (confidence: ${classification.confidence})")
-                    classification.intent
-                },
-                onFailure = { e ->
-                    android.util.Log.e("ChatViewModel", "Intent classification failed: ${e.message}")
-                    "general" // 분류 실패 시 기본값
-                }
-            )
-
-            _uiState.value = _uiState.value.copy(
-                isClassifying = false,
-                currentIntent = intent
-            )
-
-            // 2. bible_reading이면 채팅에 메시지 추가 없이 바로 네비게이션
-            if (intent == "bible_reading") {
-                handleBibleReading(repo, content)
-                return@launch
-            }
-
-            // 3. sermon_note이면 채팅에 메시지 추가 없이 바로 설교 노트 화면으로 이동
-            if (intent == "sermon_note") {
-                android.util.Log.d("ChatViewModel", "Navigating to sermon note")
-                _uiState.value = _uiState.value.copy(
-                    sermonNoteNavigationEvent = true
-                )
-                return@launch
-            }
-
-            // 4. 다른 intent는 세션 생성 및 메시지 추가 후 처리
+            // 1. 세션 생성 (없으면)
             var sessionId = _uiState.value.currentSessionId
             if (sessionId == null) {
                 val sessionResult = repo.createSession()
@@ -190,7 +157,10 @@ class ChatViewModel @Inject constructor(
                         _uiState.value = _uiState.value.copy(currentSessionId = session.id)
                     },
                     onFailure = { e ->
-                        _uiState.value = _uiState.value.copy(error = e.message)
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            error = e.message
+                        )
                         return@launch
                     }
                 )
@@ -198,172 +168,60 @@ class ChatViewModel @Inject constructor(
 
             val currentSessionId = sessionId ?: return@launch
 
-            // 사용자 메시지 UI에 추가
+            // 2. 사용자 메시지 UI에 추가
             val userMessage = ChatMessage(content = content, isFromUser = true)
             _uiState.value = _uiState.value.copy(
                 messages = _uiState.value.messages + userMessage
             )
 
-            // Intent에 따라 라우팅
-            when (intent) {
-                "bible_study" -> {
-                    // 성경 공부 → 구조화된 응답
-                    handleBibleStudy(repo, currentSessionId, content)
-                }
-                else -> {
-                    // 상담, 기도, 일반 → 스트리밍 응답
-                    handleStreamingResponse(repo, currentSessionId, content)
-                }
-            }
-        }
-    }
+            // 3. Agent 호출
+            android.util.Log.d("ChatViewModel", "Calling agent...")
+            repo.agentChat(currentSessionId, content).fold(
+                onSuccess = { response ->
+                    android.util.Log.d("ChatViewModel", "Agent response: ${response.response?.take(50)}")
+                    android.util.Log.d("ChatViewModel", "Navigation: ${response.navigation}")
+                    android.util.Log.d("ChatViewModel", "Tools used: ${response.toolsUsed}")
 
-    /**
-     * 성경 읽기 요청 처리 (네비게이션)
-     * 성공: 채팅에 메시지 추가 없이 바로 성경 화면으로 이동
-     * 실패: 사용자 메시지 + AI 응답을 채팅에 표시
-     */
-    private suspend fun handleBibleReading(
-        repo: ChatRepository,
-        userMessage: String
-    ) {
-        _uiState.value = _uiState.value.copy(isLoading = true)
-
-        repo.getBibleReading(userMessage).fold(
-            onSuccess = { bibleReadingData ->
-                android.util.Log.d("ChatViewModel", "Bible reading parsed: ${bibleReadingData.book} ${bibleReadingData.chapter}:${bibleReadingData.verse}")
-
-                // 바로 네비게이션 이벤트 발생 (채팅에 메시지 추가 안 함)
-                // chapter는 Repository에서 null 체크 완료됨
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    bibleNavigationEvent = BibleNavigationEvent(
-                        book = bibleReadingData.book,
-                        chapter = bibleReadingData.chapter!!,
-                        verse = bibleReadingData.verse
-                    )
-                )
-            },
-            onFailure = { e ->
-                android.util.Log.e("ChatViewModel", "Bible reading parse failed: ${e.message}")
-
-                // 실패 시 사용자 메시지와 AI 응답을 채팅에 표시
-                // 백엔드에서 받은 에러 메시지를 그대로 사용
-                val userChatMessage = ChatMessage(content = userMessage, isFromUser = true)
-                val aiResponse = ChatMessage(
-                    content = e.message ?: "요청하신 성경책을 찾을 수 없어요. 다시 시도해주세요.",
-                    isFromUser = false
-                )
-
-                _uiState.value = _uiState.value.copy(
-                    messages = _uiState.value.messages + userChatMessage + aiResponse,
-                    isLoading = false
-                )
-            }
-        )
-    }
-
-    /**
-     * 성경 네비게이션 이벤트 소비 (네비게이션 후 호출)
-     */
-    fun consumeBibleNavigationEvent() {
-        _uiState.value = _uiState.value.copy(bibleNavigationEvent = null)
-    }
-
-    /**
-     * 설교 노트 네비게이션 이벤트 소비 (네비게이션 후 호출)
-     */
-    fun consumeSermonNoteNavigationEvent() {
-        _uiState.value = _uiState.value.copy(sermonNoteNavigationEvent = false)
-    }
-
-    /**
-     * 성경 공부 응답 처리 (구조화된 JSON)
-     */
-    private suspend fun handleBibleStudy(
-        repo: ChatRepository,
-        sessionId: String,
-        userMessage: String
-    ) {
-        _uiState.value = _uiState.value.copy(isLoading = true)
-
-        repo.getBibleStudy(sessionId, userMessage).fold(
-            onSuccess = { bibleStudyData ->
-                android.util.Log.d("ChatViewModel", "Bible study response received")
-
-                // 구조화된 성경 공부 메시지 추가
-                val assistantMessage = ChatMessage(
-                    content = bibleStudyData.passageExplanation, // 기본 표시 내용
-                    isFromUser = false,
-                    type = MessageType.BIBLE_STUDY,
-                    bibleStudyData = bibleStudyData
-                )
-
-                _uiState.value = _uiState.value.copy(
-                    messages = _uiState.value.messages + assistantMessage,
-                    isLoading = false
-                )
-
-                // 첫 메시지면 제목 업데이트
-                updateSessionTitleIfFirst(repo, sessionId, userMessage)
-            },
-            onFailure = { e ->
-                android.util.Log.e("ChatViewModel", "Bible study failed: ${e.message}")
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    error = e.message
-                )
-            }
-        )
-    }
-
-    /**
-     * 스트리밍 응답 처리 (상담, 기도, 일반)
-     */
-    private suspend fun handleStreamingResponse(
-        repo: ChatRepository,
-        sessionId: String,
-        userMessage: String
-    ) {
-        _uiState.value = _uiState.value.copy(
-            isStreaming = true,
-            streamingContent = ""
-        )
-
-        android.util.Log.d("ChatViewModel", "Starting stream...")
-        repo.sendMessageStream(sessionId, userMessage).collect { response ->
-            when (response) {
-                is StreamResponse.Streaming -> {
-                    android.util.Log.d("ChatViewModel", "Streaming: ${response.content.take(50)}")
-                    _uiState.value = _uiState.value.copy(
-                        streamingContent = response.content
-                    )
-                }
-                is StreamResponse.Complete -> {
-                    android.util.Log.d("ChatViewModel", "Stream complete")
+                    // AI 응답 메시지 추가
                     val assistantMessage = ChatMessage(
-                        content = response.content,
-                        isFromUser = false,
-                        type = MessageType.TEXT
+                        content = response.response ?: "",
+                        isFromUser = false
                     )
                     _uiState.value = _uiState.value.copy(
                         messages = _uiState.value.messages + assistantMessage,
-                        isStreaming = false,
-                        streamingContent = ""
+                        isLoading = false,
+                        toolsUsed = response.toolsUsed ?: emptyList()
                     )
 
-                    updateSessionTitleIfFirst(repo, sessionId, userMessage)
-                }
-                is StreamResponse.Error -> {
-                    android.util.Log.e("ChatViewModel", "Stream error: ${response.message}")
+                    // 네비게이션 이벤트 처리
+                    response.navigation?.let { nav ->
+                        _uiState.value = _uiState.value.copy(
+                            navigationEvent = NavigationEvent(
+                                screen = nav.screen,
+                                params = nav.params
+                            )
+                        )
+                    }
+
+                    // 첫 메시지면 세션 제목 업데이트
+                    updateSessionTitleIfFirst(repo, currentSessionId, content)
+                },
+                onFailure = { e ->
+                    android.util.Log.e("ChatViewModel", "Agent failed: ${e.message}")
                     _uiState.value = _uiState.value.copy(
-                        isStreaming = false,
-                        streamingContent = "",
-                        error = response.message
+                        isLoading = false,
+                        error = e.message
                     )
                 }
-            }
+            )
         }
+    }
+
+    /**
+     * 네비게이션 이벤트 소비 (네비게이션 후 호출)
+     */
+    fun consumeNavigationEvent() {
+        _uiState.value = _uiState.value.copy(navigationEvent = null)
     }
 
     /**

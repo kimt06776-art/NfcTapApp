@@ -13,7 +13,6 @@ import com.example.nfctapapp.domain.model.AuthState
 import com.example.nfctapapp.ui.auth.AuthViewModel
 import com.example.nfctapapp.ui.auth.RegistrationScreen
 import com.example.nfctapapp.ui.auth.WelcomeScreen
-import com.example.nfctapapp.ui.chat.ChatScreen
 import com.example.nfctapapp.ui.entrance.EntranceScreen
 import com.example.nfctapapp.ui.home.HomeScreen
 import com.example.nfctapapp.ui.sermon.SermonScreen
@@ -86,6 +85,11 @@ fun AppNavigation(
         }
     }
 
+    // 성경 상태 유지 (책, 장, 절)
+    var currentBibleBook by remember { mutableStateOf("요한복음") }
+    var currentBibleChapter by remember { mutableIntStateOf(1) }
+    var currentBibleVerse by remember { mutableIntStateOf(1) }
+
     // 항상 splash에서 시작
     NavHost(navController = navController, startDestination = "splash") {
         composable("splash") {
@@ -119,36 +123,19 @@ fun AppNavigation(
         }
 
         composable("home") {
+            val userId = (authState as? AuthState.Authenticated)?.user?.id ?: ""
+
             HomeScreen(
+                userId = userId,
                 onMenuClick = { menuId ->
                     navController.navigate(menuId)
-                },
-                onChatClick = { navController.navigate("chat") }
+                }
             )
         }
 
         composable("todayVerse") {
             TodayVerseScreen(
                 onBackClick = { navController.popBackStack() }
-            )
-        }
-
-        composable("chat") {
-            // 인증된 사용자의 ID 가져오기
-            val userId = (authState as? AuthState.Authenticated)?.user?.id ?: ""
-
-            ChatScreen(
-                userId = userId,
-                onMenuClick = { menuId ->
-                    when (menuId) {
-                        "sermon" -> navController.navigate("sermon")
-                        "bible" -> navController.navigate("bible")
-                        "community" -> navController.navigate("community")
-                        "worship" -> navController.navigate("worship")
-                        "gamification" -> navController.navigate("gamification")
-                    }
-                },
-                onCloseClick = { navController.popBackStack() }
             )
         }
 
@@ -173,25 +160,37 @@ fun AppNavigation(
                 }
             )
         ) { backStackEntry ->
-            val chapter = backStackEntry.arguments?.getInt("chapter") ?: -1
-            val verse = backStackEntry.arguments?.getInt("verse") ?: -1
+            val argChapter = backStackEntry.arguments?.getInt("chapter") ?: -1
+            val argVerse = backStackEntry.arguments?.getInt("verse") ?: -1
+
+            // argument가 있으면 argument 사용, 없으면 저장된 상태 사용
+            val chapter = if (argChapter > 0) argChapter else currentBibleChapter
+            // verse는 argument로 명시적으로 전달된 경우에만 사용 (하이라이트용)
+            val verse = if (argVerse > 0) argVerse else null
 
             com.example.nfctapapp.ui.bible.BibleScreenNew(
                 onBackClick = { navController.popBackStack() },
                 onBookSelectorClick = { navController.navigate("bibleBookSelector") },
-                initialChapter = if (chapter > 0) chapter else null,
-                initialVerse = if (verse > 0) verse else null
+                initialChapter = chapter,
+                initialVerse = verse,
+                onChapterChanged = { newChapter ->
+                    currentBibleChapter = newChapter
+                }
             )
         }
 
         composable("bibleBookSelector") {
             com.example.nfctapapp.ui.bible.BibleBookSelectorScreen(
-                currentBook = "요한복음",
-                currentChapter = 1,
+                currentBook = currentBibleBook,
+                currentChapter = currentBibleChapter,
                 onBookSelected = { bookName, chapter, verse ->
                     if (bookName == "요한복음") {
+                        // 상태 업데이트
+                        currentBibleBook = bookName
+                        currentBibleChapter = chapter
+                        currentBibleVerse = verse
                         navController.navigate("bible?chapter=$chapter&verse=$verse") {
-                            popUpTo("bibleBookSelector") { inclusive = true }
+                            popUpTo("bible") { inclusive = true }
                         }
                     } else {
                         Toast.makeText(
@@ -228,5 +227,6 @@ fun AppNavigation(
                 onBackClick = { navController.popBackStack() }
             )
         }
+
     }
 }

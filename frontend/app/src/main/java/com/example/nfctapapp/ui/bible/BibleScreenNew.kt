@@ -50,6 +50,7 @@ fun BibleScreenNew(
     onBookSelectorClick: () -> Unit,
     initialChapter: Int? = null,
     initialVerse: Int? = null,
+    onChapterChanged: (Int) -> Unit = {},
     viewModel: BibleViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -61,27 +62,33 @@ fun BibleScreenNew(
 
     // 초기 장/절이 지정된 경우 해당 위치로 이동
     LaunchedEffect(initialChapter, initialVerse) {
-        if (initialChapter != null && initialVerse != null && initialChapter > 0 && initialVerse > 0) {
-            viewModel.loadChapterAndScrollToVerse(initialChapter, initialVerse)
+        if (initialChapter != null && initialChapter > 0) {
+            if (initialVerse != null && initialVerse > 0) {
+                viewModel.loadChapterAndScrollToVerse(initialChapter, initialVerse)
+            } else {
+                viewModel.loadChapter(initialChapter)
+            }
         }
     }
 
-    // 장 변경 시 스크롤 맨 위로 (targetVerse가 없을 때만)
+    // 장이 변경되면 상위에 알림
     LaunchedEffect(uiState.currentChapter) {
-        if (uiState.targetVerse == null) {
-            listState.scrollToItem(0)
-        }
+        onChapterChanged(uiState.currentChapter)
     }
 
-    // targetVerse가 설정되면 해당 절로 스크롤
-    LaunchedEffect(uiState.targetVerse) {
-        uiState.targetVerse?.let { targetVerse ->
-            // 절 번호는 1부터 시작하므로 인덱스는 verse - 1
-            val targetIndex = targetVerse - 1
-            if (targetIndex >= 0) {
-                listState.animateScrollToItem(targetIndex)
-                // 스크롤 완료 후 targetVerse 클리어
-                viewModel.clearTargetVerse()
+    // 장/절 스크롤 처리 (데이터 로드 완료 후)
+    LaunchedEffect(uiState.currentChapterData, uiState.targetVerse) {
+        // 데이터가 로드되었을 때만 스크롤
+        val verses = uiState.currentChapterData?.verses
+        if (verses != null && !uiState.isLoading) {
+            val targetVerse = uiState.targetVerse
+            if (targetVerse != null) {
+                // 특정 절로 스크롤
+                val targetIndex = targetVerse - 1
+                if (targetIndex >= 0 && targetIndex < verses.size) {
+                    listState.scrollToItem(targetIndex)
+                    viewModel.clearTargetVerse()
+                }
             }
         }
     }

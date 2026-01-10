@@ -1,13 +1,11 @@
 package com.example.nfctapapp.data.repository
 
-import com.example.nfctapapp.data.remote.api.BibleReadingData
-import com.example.nfctapapp.data.remote.api.BibleStudyData
+import com.example.nfctapapp.data.remote.api.AgentChatResponse
 import com.example.nfctapapp.data.remote.api.ChatApiService
 import com.example.nfctapapp.data.remote.api.ChatMessageDto
 import com.example.nfctapapp.data.remote.api.ChatMessageInsert
 import com.example.nfctapapp.data.remote.api.ChatSessionDto
 import com.example.nfctapapp.data.remote.api.ChatStreamRequest
-import com.example.nfctapapp.data.remote.api.IntentClassificationDto
 import com.example.nfctapapp.data.remote.api.SessionCreateRequest
 import com.example.nfctapapp.data.remote.api.SessionUpdateRequest
 import kotlinx.coroutines.Dispatchers
@@ -22,8 +20,9 @@ import javax.inject.Singleton
 /**
  * Chat Repository (Backend API 사용)
  *
- * 이전: OpenAIClient + SupabaseClient 직접 사용
- * 현재: Backend REST API 사용 (보안 강화)
+ * Agent 기반 아키텍처:
+ * - agentChat(): 모든 대화 요청을 처리하는 메인 메서드
+ * - Agent가 자동으로 도구 사용 및 네비게이션 판단
  */
 @Singleton
 class ChatRepository @Inject constructor(
@@ -166,90 +165,33 @@ class ChatRepository @Inject constructor(
         }
     }
 
-    // ==================== Intent Classification ====================
+    // ==================== Agent Chat (Main) ====================
 
     /**
-     * 사용자 메시지 의도 분류
-     * bible_study, counseling, prayer, general 중 하나 반환
+     * Agent 기반 채팅 요청
+     *
+     * Agent가 자동으로:
+     * - 성경 검색, 구절 조회
+     * - 앱 화면 네비게이션
+     * - 상담 및 기도 응답
+     *
+     * @param sessionId 채팅 세션 ID
+     * @param userMessage 사용자 메시지
+     * @return AgentChatResponse (응답 + 네비게이션 정보 + 사용된 도구)
      */
-    suspend fun classifyIntent(userMessage: String): Result<IntentClassificationDto> {
+    suspend fun agentChat(sessionId: String, userMessage: String): Result<AgentChatResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = chatApiService.classifyIntent(
-                    ChatStreamRequest(sessionId = "", userMessage = userMessage)
-                )
-
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    if (body?.success == true && body.classification != null) {
-                        Result.success(body.classification)
-                    } else {
-                        Result.failure(Exception(body?.error ?: "의도 분류 실패"))
-                    }
-                } else {
-                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
-                }
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
-        }
-    }
-
-    /**
-     * 성경 공부 응답 요청
-     * Structured output으로 정형화된 응답 반환
-     */
-    suspend fun getBibleStudy(sessionId: String, userMessage: String): Result<BibleStudyData> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = chatApiService.bibleStudy(
+                val response = chatApiService.agentChat(
                     ChatStreamRequest(sessionId = sessionId, userMessage = userMessage)
                 )
 
                 if (response.isSuccessful) {
                     val body = response.body()
-                    if (body?.success == true && body.data != null) {
-                        Result.success(body.data)
+                    if (body?.success == true) {
+                        Result.success(body)
                     } else {
-                        Result.failure(Exception("성경 공부 응답 실패"))
-                    }
-                } else {
-                    Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))
-                }
-            } catch (e: Exception) {
-                Result.failure(e)
-            }
-        }
-    }
-
-    /**
-     * 성경 읽기 요청 파싱
-     * 책/장/절 정보를 추출하여 네비게이션에 사용
-     */
-    suspend fun getBibleReading(userMessage: String): Result<BibleReadingData> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = chatApiService.bibleReading(
-                    ChatStreamRequest(sessionId = "", userMessage = userMessage)
-                )
-
-                if (response.isSuccessful) {
-                    val body = response.body()
-                    if (body?.success == true && body.data != null) {
-                        // 지원되는 성경책인지 확인
-                        if (body.data.isSupported && body.data.chapter != null) {
-                            Result.success(body.data)
-                        } else {
-                            // 지원되지 않는 책이거나 chapter가 없는 경우
-                            val errorMsg = body.data.errorMessage
-                                ?: body.error
-                                ?: "${body.data.book}은(는) 현재 지원하지 않는 성경책입니다"
-                            Result.failure(Exception(errorMsg))
-                        }
-                    } else {
-                        // success가 false인 경우
-                        val errorMsg = body?.error ?: "성경 구절 파싱 실패"
-                        Result.failure(Exception(errorMsg))
+                        Result.failure(Exception(body?.error ?: "Agent 응답 실패"))
                     }
                 } else {
                     Result.failure(Exception("HTTP ${response.code()}: ${response.message()}"))

@@ -99,6 +99,37 @@ class ChatRepository:
             logger.error(f"Failed to get sessions: {str(e)}", exc_info=True)
             raise
 
+    async def get_session(self, session_id: str) -> Optional[ChatSessionDto]:
+        """
+        Get a single session by ID.
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            ChatSessionDto or None if not found
+        """
+        try:
+            response = self.supabase.table("chat_sessions") \
+                .select("*") \
+                .eq("id", session_id) \
+                .execute()
+
+            if response.data:
+                session_data = response.data[0]
+                return ChatSessionDto(
+                    id=session_data.get("id"),
+                    userId=session_data.get("user_id"),
+                    title=session_data.get("title"),
+                    createdAt=session_data.get("created_at"),
+                    updatedAt=session_data.get("updated_at")
+                )
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get session: {str(e)}", exc_info=True)
+            return None
+
     async def update_session_title(self, session_id: str, title: str) -> None:
         """
         Update session title.

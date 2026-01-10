@@ -135,34 +135,39 @@ fun HomeScreen(
         }
     }
 
-    // 성경 네비게이션 이벤트 처리
-    LaunchedEffect(uiState.bibleNavigationEvent) {
-        uiState.bibleNavigationEvent?.let { event ->
-            // 현재는 요한복음만 지원
-            if (event.book == "요한복음") {
-                val route = if (event.verse != null) {
-                    "bible?chapter=${event.chapter}&verse=${event.verse}"
-                } else {
-                    "bible?chapter=${event.chapter}&verse=-1"
-                }
-                onMenuClick(route)
-            } else {
-                // 다른 책은 아직 미지원
-                android.widget.Toast.makeText(
-                    context,
-                    "${event.book}은(는) 아직 준비 중입니다",
-                    android.widget.Toast.LENGTH_SHORT
-                ).show()
-            }
-            chatViewModel.consumeBibleNavigationEvent()
-        }
-    }
+    // Agent 네비게이션 이벤트 처리
+    LaunchedEffect(uiState.navigationEvent) {
+        uiState.navigationEvent?.let { event ->
+            android.util.Log.d("HomeScreen", "Navigation event: ${event.screen}, params: ${event.params}")
 
-    // 설교 노트 네비게이션 이벤트 처리
-    LaunchedEffect(uiState.sermonNoteNavigationEvent) {
-        if (uiState.sermonNoteNavigationEvent) {
-            onMenuClick("sermonNote")
-            chatViewModel.consumeSermonNoteNavigationEvent()
+            when (event.screen) {
+                "bible" -> {
+                    // 성경 화면으로 이동
+                    val chapter = event.params?.get("chapter")?.toIntOrNull() ?: 1
+                    val verse = event.params?.get("verse")?.toIntOrNull() ?: -1
+                    onMenuClick("bible?chapter=$chapter&verse=$verse")
+                }
+                "sermon_note" -> {
+                    // 설교 노트 화면으로 이동
+                    onMenuClick("sermonNote")
+                }
+                "today_verse" -> {
+                    // 오늘의 말씀 화면
+                    onMenuClick("todayVerse")
+                }
+                "sermon" -> {
+                    // 설교 화면
+                    onMenuClick("sermon")
+                }
+                "community" -> {
+                    // 공동체 화면
+                    onMenuClick("community")
+                }
+                else -> {
+                    android.util.Log.w("HomeScreen", "Unknown screen: ${event.screen}")
+                }
+            }
+            chatViewModel.consumeNavigationEvent()
         }
     }
 
@@ -245,17 +250,10 @@ fun HomeScreen(
                         ChatBubble(message = message)
                     }
 
-                    // Intent 분류 중 표시
-                    if (uiState.isClassifying) {
+                    // Agent 처리 중 표시
+                    if (uiState.isLoading) {
                         item {
-                            LoadingBubble(text = "질문 분석 중...")
-                        }
-                    }
-
-                    // 성경 공부 응답 로딩 중 표시
-                    if (uiState.isLoading && uiState.currentIntent == "bible_study") {
-                        item {
-                            LoadingBubble(text = "성경 공부 준비 중...")
+                            LoadingBubble(text = "생각 중...")
                         }
                     }
 

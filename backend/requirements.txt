@@ -2,9 +2,14 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.0
 
-# LangChain (Core only, no heavy dependencies)
-langchain-core==0.3.0
-langchain-openai==0.2.0
+# LangChain (Agent + Tools 지원)
+langchain==1.2.3
+langchain-core==1.2.6
+langchain-openai==1.1.7
+
+# LangGraph (Memory + Checkpointer)
+langgraph>=1.0.2,<1.1.0
+langgraph-checkpoint>=2.0.0
 
 # Data Validation
 pydantic==2.9.0

@@ -1,5 +1,6 @@
 package com.example.nfctapapp.ui.sermonnote
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -51,6 +52,12 @@ fun SermonNoteScreen(
             editingNote = null
             viewModel.clearSaveSuccess()
         }
+    }
+
+    // 에디터가 열려있을 때 시스템 뒤로가기 버튼 처리
+    BackHandler(enabled = showEditor && !uiState.isSaving) {
+        showEditor = false
+        editingNote = null
     }
 
     if (showEditor) {
@@ -368,6 +375,7 @@ private fun SermonNoteEditor(
             modifier = Modifier
                 .fillMaxSize()
                 .systemBarsPadding()
+                .imePadding()
         ) {
             // 헤더
             Row(
@@ -412,7 +420,7 @@ private fun SermonNoteEditor(
                         Text(
                             text = "저장",
                             fontSize = 16.sp,
-                            color = if (title.isNotBlank()) HiddenWarm else TertiaryText.copy(alpha = 0.5f)
+                            color = if (title.isNotBlank()) PrimaryText else TertiaryText.copy(alpha = 0.5f)
                         )
                     }
                 }
@@ -463,10 +471,10 @@ private fun SermonNoteEditor(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = HiddenWarm,
-                        unfocusedTextColor = HiddenWarm,
-                        cursorColor = HiddenWarm,
-                        focusedBorderColor = HiddenWarm,
+                        focusedTextColor = SecondaryText,
+                        unfocusedTextColor = SecondaryText,
+                        cursorColor = SecondaryText,
+                        focusedBorderColor = TertiaryText.copy(alpha = 0.5f),
                         unfocusedBorderColor = TertiaryText.copy(alpha = 0.3f)
                     ),
                     singleLine = true,

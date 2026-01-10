@@ -7,8 +7,22 @@ import retrofit2.http.*
 /**
  * Chat API Service
  * AI 채팅 세션 및 메시지 관리
+ *
+ * Agent 기반 아키텍처:
+ * - agentChat: 모든 요청을 처리하는 메인 엔드포인트
+ * - Agent가 자동으로 도구 사용 여부 결정
  */
 interface ChatApiService {
+
+    /**
+     * Main Agent Chat endpoint
+     * Agent가 자동으로 판단하여 응답 생성
+     * - 성경 검색, 화면 네비게이션, 상담 등 모두 처리
+     */
+    @POST("/api/chat/agent")
+    suspend fun agentChat(
+        @Body request: ChatStreamRequest
+    ): Response<AgentChatResponse>
 
     /**
      * Chat streaming endpoint

@@ -248,6 +248,11 @@ sdk.dir=C:\\Users\\...\\Android\\Sdk
 
 ## 주의사항
 
+### 빌드 명령어 경로
+- ❌ `cd C:\Users\xogns\AndroidStudioProjects\NfcTapApp\frontend` (절대 경로 사용 금지)
+- ✅ `cd frontend` (상대 경로 사용)
+- Working directory가 이미 `NfcTapApp`이므로 상대 경로로 이동
+
 ### Supabase 직접 접근 제거됨
 - ❌ Frontend에서 `SupabaseClient` 직접 사용 (삭제됨)
 - ✅ Backend API를 통한 간접 접근만 허용
@@ -263,6 +268,17 @@ sdk.dir=C:\\Users\\...\\Android\\Sdk
 ### 로깅
 - Backend: ERROR/WARNING만 출력 (INFO/DEBUG 비활성화)
 - httpcore, httpx, openai, uvicorn.access 로그 최소화
+
+### Backend 개발 필수 사항
+- **API 테스트 필수**: 새 엔드포인트 추가/수정 시 Swagger UI 또는 `curl`로 반드시 테스트
+- **GitHub Push 필수**: Backend 코드 변경 시 반드시 GitHub에 push (Render가 자동 배포)
+- 테스트 → 커밋 → Push 순서 준수
+
+### Backend 배포 정보
+- **배포 플랫폼**: Render
+- **Production URL**: `https://nfctapapp-backend.onrender.com`
+- **Swagger UI**: `https://nfctapapp-backend.onrender.com/docs`
+- **로컬 개발**: `http://localhost:8000/docs`
 
 ## 디자인 시스템
 

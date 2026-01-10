@@ -59,16 +59,25 @@ class BibleViewModel @Inject constructor(
 
     /**
      * 장 로드
+     * 해당 장이 없으면 1장으로 fallback
      */
     fun loadChapter(chapter: Int) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
-                val chapterData = bibleRepository.getChapter("요한복음", chapter)
+                var chapterData = bibleRepository.getChapter("요한복음", chapter)
+                var actualChapter = chapter
+
+                // 해당 장이 없으면 1장으로 fallback
+                if (chapterData == null && chapter != 1) {
+                    chapterData = bibleRepository.getChapter("요한복음", 1)
+                    actualChapter = 1
+                }
+
                 _uiState.update {
                     it.copy(
-                        currentChapter = chapter,
+                        currentChapter = actualChapter,
                         currentChapterData = chapterData,
                         searchResults = null, // 검색 결과 클리어
                         isLoading = false,
@@ -88,20 +97,31 @@ class BibleViewModel @Inject constructor(
 
     /**
      * 특정 장과 절로 이동 (스크롤 포함)
+     * 해당 장이 없으면 1장으로 fallback
      */
     fun loadChapterAndScrollToVerse(chapter: Int, verse: Int) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
-                val chapterData = bibleRepository.getChapter("요한복음", chapter)
+                var chapterData = bibleRepository.getChapter("요한복음", chapter)
+                var actualChapter = chapter
+                var actualVerse: Int? = verse
+
+                // 해당 장이 없으면 1장으로 fallback (절 스크롤도 무효화)
+                if (chapterData == null && chapter != 1) {
+                    chapterData = bibleRepository.getChapter("요한복음", 1)
+                    actualChapter = 1
+                    actualVerse = null // 1장으로 fallback 시 절 스크롤 안 함
+                }
+
                 _uiState.update {
                     it.copy(
-                        currentChapter = chapter,
+                        currentChapter = actualChapter,
                         currentChapterData = chapterData,
                         searchResults = null,
-                        targetVerse = verse, // 스크롤할 절 설정
-                        highlightedVerse = verse, // 하이라이트할 절 설정
+                        targetVerse = actualVerse, // 스크롤할 절 설정
+                        highlightedVerse = actualVerse, // 하이라이트할 절 설정
                         isLoading = false,
                         error = null
                     )

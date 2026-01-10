@@ -1,17 +1,22 @@
 package com.example.nfctapapp.ui.bible
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -21,6 +26,25 @@ import androidx.compose.ui.unit.sp
 import com.example.nfctapapp.data.model.BibleBooks
 import com.example.nfctapapp.data.model.BookInfo
 import com.example.nfctapapp.data.model.Testament
+
+// 구약 카테고리 정의
+private data class BookCategory(val name: String, val books: List<BookInfo>)
+
+private val oldTestamentCategories = listOf(
+    BookCategory("모세오경", BibleBooks.oldTestamentBooks.slice(0..4)),
+    BookCategory("역사서", BibleBooks.oldTestamentBooks.slice(5..16)),
+    BookCategory("시가서", BibleBooks.oldTestamentBooks.slice(17..21)),
+    BookCategory("대선지서", BibleBooks.oldTestamentBooks.slice(22..26)),
+    BookCategory("소선지서", BibleBooks.oldTestamentBooks.slice(27..38))
+)
+
+private val newTestamentCategories = listOf(
+    BookCategory("복음서", BibleBooks.newTestamentBooks.slice(0..3)),
+    BookCategory("역사서", BibleBooks.newTestamentBooks.slice(4..4)),
+    BookCategory("바울서신", BibleBooks.newTestamentBooks.slice(5..17)),
+    BookCategory("일반서신", BibleBooks.newTestamentBooks.slice(18..25)),
+    BookCategory("예언서", BibleBooks.newTestamentBooks.slice(26..26))
+)
 
 /**
  * 성경 선택 화면
@@ -40,6 +64,15 @@ fun BibleBookSelectorScreen(
 ) {
     var selectedBook by remember { mutableStateOf<BookInfo?>(null) }
     var selectedChapter by remember { mutableStateOf<Int?>(null) }
+
+    // 시스템 뒤로가기 버튼 처리
+    BackHandler {
+        when {
+            selectedChapter != null -> selectedChapter = null  // 절 → 장
+            selectedBook != null -> selectedBook = null        // 장 → 책
+            else -> onBackClick()                              // 책 → 성경 화면
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -81,7 +114,7 @@ fun BibleBookSelectorScreen(
                 )
             }
 
-            // 선택 단계 표시
+            // 선택 단계 표시 (책, 장 클릭 가능)
             StepIndicator(
                 currentStep = when {
                     selectedBook == null -> 1
@@ -89,7 +122,16 @@ fun BibleBookSelectorScreen(
                     else -> 3
                 },
                 selectedBookName = selectedBook?.name,
-                selectedChapter = selectedChapter
+                selectedChapter = selectedChapter,
+                onBookStepClick = {
+                    selectedBook = null
+                    selectedChapter = null
+                },
+                onChapterStepClick = {
+                    if (selectedBook != null) {
+                        selectedChapter = null
+                    }
+                }
             )
 
             when {
@@ -107,10 +149,6 @@ fun BibleBookSelectorScreen(
                         currentChapter = if (selectedBook!!.name == currentBook) currentChapter else 1,
                         onChapterClick = { chapter ->
                             selectedChapter = chapter
-                        },
-                        onBackToBooks = {
-                            selectedBook = null
-                            selectedChapter = null
                         }
                     )
                 }
@@ -121,8 +159,7 @@ fun BibleBookSelectorScreen(
                         chapter = selectedChapter!!,
                         onVerseClick = { verse ->
                             onBookSelected(selectedBook!!.name, selectedChapter!!, verse)
-                        },
-                        onBackToChapters = { selectedChapter = null }
+                        }
                     )
                 }
             }
@@ -135,57 +172,139 @@ private fun BookSelectionView(
     currentBook: String,
     onBookClick: (BookInfo) -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // 구약 헤더
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+        item {
             Text(
-                text = "구약 (39권)",
-                fontSize = 18.sp,
+                text = "구약",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFF5F4F2),  // Primary Text
-                modifier = Modifier.padding(vertical = 12.dp)
+                color = Color(0xFFF5F4F2),
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
             )
         }
 
-        // 구약 39권
-        items(BibleBooks.oldTestamentBooks) { book ->
-            BookCard(
-                book = book,
-                isSelected = book.name == currentBook,
-                onClick = { onBookClick(book) }
+        // 구약 카테고리별 박스
+        items(oldTestamentCategories) { category ->
+            CategoryBox(
+                category = category,
+                currentBook = currentBook,
+                onBookClick = onBookClick
             )
         }
 
         // 신약 헤더
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+        item {
             Text(
-                text = "신약 (27권)",
-                fontSize = 18.sp,
+                text = "신약",
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFF5F4F2),  // Primary Text
-                modifier = Modifier.padding(top = 24.dp, bottom = 12.dp)
+                color = Color(0xFFF5F4F2),
+                modifier = Modifier.padding(top = 16.dp, bottom = 4.dp)
             )
         }
 
-        // 신약 27권
-        items(BibleBooks.newTestamentBooks) { book ->
-            BookCard(
-                book = book,
-                isSelected = book.name == currentBook,
-                onClick = { onBookClick(book) }
+        // 신약 카테고리별 박스
+        items(newTestamentCategories) { category ->
+            CategoryBox(
+                category = category,
+                currentBook = currentBook,
+                onBookClick = onBookClick
             )
         }
 
-        item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(3) }) {
+        item {
             Spacer(modifier = Modifier.height(20.dp))
         }
+    }
+}
+
+@Composable
+private fun CategoryBox(
+    category: BookCategory,
+    currentBook: String,
+    onBookClick: (BookInfo) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF5A5957))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            // 카테고리 제목
+            Text(
+                text = category.name,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF9A8F7A)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 책 목록 (1열)
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                category.books.forEach { book ->
+                    BookRow(
+                        book = book,
+                        isSelected = book.name == currentBook,
+                        onClick = { onBookClick(book) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BookRow(
+    book: BookInfo,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // 약어 동그라미
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(
+                    color = if (isSelected) Color(0xFF9A8F7A) else Color(0xFF4F4E4B),
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = book.abbreviation,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2)
+            )
+        }
+
+        // 책 이름
+        Text(
+            text = book.name,
+            fontSize = 15.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2)
+        )
     }
 }
 
@@ -193,7 +312,9 @@ private fun BookSelectionView(
 private fun StepIndicator(
     currentStep: Int,
     selectedBookName: String?,
-    selectedChapter: Int?
+    selectedChapter: Int?,
+    onBookStepClick: () -> Unit,
+    onChapterStepClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -202,32 +323,35 @@ private fun StepIndicator(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 책
+        // 책 (클릭 가능 - 현재 단계가 아닐 때)
         StepItem(
             label = "책",
             isActive = currentStep == 1,
             isCompleted = currentStep > 1,
-            selectedText = selectedBookName
+            selectedText = selectedBookName,
+            onClick = if (currentStep > 1) onBookStepClick else null
         )
 
         Text(text = "›", color = Color(0xFFC1BFBB).copy(alpha = 0.5f), fontSize = 20.sp)
 
-        // 장
+        // 장 (클릭 가능 - 절 선택 단계일 때)
         StepItem(
             label = "장",
             isActive = currentStep == 2,
             isCompleted = currentStep > 2,
-            selectedText = selectedChapter?.let { "${it}장" }
+            selectedText = selectedChapter?.let { "${it}장" },
+            onClick = if (currentStep > 2) onChapterStepClick else null
         )
 
         Text(text = "›", color = Color(0xFFC1BFBB).copy(alpha = 0.5f), fontSize = 20.sp)
 
-        // 절
+        // 절 (클릭 불가)
         StepItem(
             label = "절",
             isActive = currentStep == 3,
             isCompleted = false,
-            selectedText = null
+            selectedText = null,
+            onClick = null
         )
     }
 }
@@ -237,10 +361,15 @@ private fun RowScope.StepItem(
     label: String,
     isActive: Boolean,
     isCompleted: Boolean,
-    selectedText: String?
+    selectedText: String?,
+    onClick: (() -> Unit)?
 ) {
     Column(
-        modifier = Modifier.weight(1f),
+        modifier = Modifier
+            .weight(1f)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
@@ -297,161 +426,148 @@ private fun BookCard(
                 fontWeight = FontWeight.Bold,
                 color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2),
                 maxLines = 2,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center
             )
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ChapterSelectionView(
     book: BookInfo,
     currentChapter: Int,
-    onChapterClick: (Int) -> Unit,
-    onBackToBooks: () -> Unit
+    onChapterClick: (Int) -> Unit
 ) {
-    Column(
+    // 장 선택 박스 (스크롤 가능)
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        // 뒤로 버튼
-        TextButton(
-            onClick = onBackToBooks,
-            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD8D6D2))  // Secondary Text
-        ) {
-            Text("← 책 선택으로 돌아가기")
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF5A5957))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "${book.name} - 장 선택",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF9A8F7A)
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        for (chapter in 1..book.totalChapters) {
+                            NumberChip(
+                                number = chapter,
+                                isSelected = chapter == currentChapter,
+                                onClick = { onChapterClick(chapter) }
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // 장 선택 그리드
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(5),
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(book.totalChapters) { index ->
-                val chapter = index + 1
-                ChapterCard(
-                    chapter = chapter,
-                    isSelected = chapter == currentChapter,
-                    onClick = { onChapterClick(chapter) }
-                )
-            }
-
-            item { Spacer(modifier = Modifier.height(20.dp)) }
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }
 
 @Composable
-private fun ChapterCard(
-    chapter: Int,
+private fun NumberChip(
+    number: Int,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    Card(
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) {
-                Color(0xFF9A8F7A)  // Hidden Warm
-            } else {
-                Color(0xFF4F4E4B)  // Deep Stone
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 6.dp else 2.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = chapter.toString(),
-                fontSize = 16.sp,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2)
+            .size(40.dp)
+            .background(
+                color = if (isSelected) Color(0xFF9A8F7A) else Color(0xFF4F4E4B),
+                shape = RoundedCornerShape(8.dp)
             )
-        }
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = number.toString(),
+            fontSize = 14.sp,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = if (isSelected) Color(0xFFF5F4F2) else Color(0xFFD8D6D2)
+        )
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun VerseSelectionView(
     book: BookInfo,
     chapter: Int,
-    onVerseClick: (Int) -> Unit,
-    onBackToChapters: () -> Unit
+    onVerseClick: (Int) -> Unit
 ) {
-    // 최대 절 수: 일반적으로 150절 정도면 충분 (시편 119편이 176절로 최장)
+    // 최대 절 수 (시편 119편이 176절로 최장)
     val maxVerses = 176
 
-    Column(
+    // 절 선택 박스
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        // 뒤로 버튼
-        TextButton(
-            onClick = onBackToChapters,
-            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFD8D6D2))  // Secondary Text
-        ) {
-            Text("← 장 선택으로 돌아가기")
-        }
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF5A5957))
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "${book.name} ${chapter}장 - 절 선택",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF9A8F7A)
+                    )
 
-        Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-        // 절 선택 그리드
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(6),
-            modifier = Modifier.fillMaxSize(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(maxVerses) { index ->
-                val verse = index + 1
-                VerseCard(
-                    verse = verse,
-                    onClick = { onVerseClick(verse) }
-                )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        for (verse in 1..maxVerses) {
+                            NumberChip(
+                                number = verse,
+                                isSelected = false,
+                                onClick = { onVerseClick(verse) }
+                            )
+                        }
+                    }
+                }
             }
-
-            item { Spacer(modifier = Modifier.height(20.dp)) }
         }
-    }
-}
 
-@Composable
-private fun VerseCard(
-    verse: Int,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF4F4E4B)  // Deep Stone
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = verse.toString(),
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Normal,
-                color = Color(0xFFD8D6D2)  // Secondary Text
-            )
+        item {
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

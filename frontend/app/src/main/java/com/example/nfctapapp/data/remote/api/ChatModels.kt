@@ -138,3 +138,20 @@ data class BibleReadingResponse(
     @Json(name = "data") val data: BibleReadingData?,
     @Json(name = "error") val error: String? = null
 )
+
+// ==================== Agent Chat Response ====================
+
+@JsonClass(generateAdapter = true)
+data class NavigationInfo(
+    @Json(name = "screen") val screen: String,
+    @Json(name = "params") val params: Map<String, String>?
+)
+
+@JsonClass(generateAdapter = true)
+data class AgentChatResponse(
+    @Json(name = "success") val success: Boolean,
+    @Json(name = "response") val response: String?,
+    @Json(name = "navigation") val navigation: NavigationInfo?,
+    @Json(name = "tools_used") val toolsUsed: List<String>?,
+    @Json(name = "error") val error: String? = null
+)
