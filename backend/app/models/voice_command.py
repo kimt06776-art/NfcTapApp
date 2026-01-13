@@ -7,12 +7,11 @@ from pydantic import BaseModel, Field
 
 class VoiceCommandAction(str, Enum):
     """Available voice command actions."""
-    NAVIGATE_HOME = "navigate_home"
     NAVIGATE_SERMON = "navigate_sermon"
-    NAVIGATE_CHAT = "navigate_chat"
-    NAVIGATE_PATHWAY = "navigate_pathway"
+    NAVIGATE_BIBLE = "navigate_bible"
+    NAVIGATE_SERMON_NOTE = "navigate_sermon_note"
+    NAVIGATE_COMMUNITY = "navigate_community"
     SHOW_DAILY_VERSE = "show_daily_verse"
-    START_CHAT = "start_chat"
     PLAY_LATEST_SERMON = "play_latest_sermon"
     UNKNOWN = "unknown"
 
